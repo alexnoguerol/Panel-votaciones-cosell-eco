@@ -17,6 +17,7 @@ from pydantic import BaseModel
 from ..deps.auth import get_current_user, UserCtx
 from ..repo import solicitudes as repo
 from ..repo import usuarios as usuarios_repo
+from ..repo import admin_usuarios as admin_repo
 
 router = APIRouter(prefix="/admin/solicitudes", tags=["admin:solicitudes"])
 
@@ -52,6 +53,28 @@ async def resolver(sol_id: str, body: ResolverIn, user: UserCtx = Depends(get_cu
             admin_id=user.user_id,
             comentario=body.comentario,
         )
+
+        # Si la solicitud de ALTA es aceptada, crea el usuario correspondiente
+        if rec.get("estado") == "aceptada" and rec.get("tipo") == "alta":
+            payload = rec.get("payload") or {}
+            email = (payload.get("email") or "").strip().lower()
+            if not email:
+                raise ValueError("Solicitud de alta sin email")
+            niu = (payload.get("niu") or "").strip()
+            if not niu:
+                if "@" in email:
+                    niu = email.split("@", 1)[0]
+                else:
+                    raise ValueError("Solicitud de alta sin NIU válido")
+            nombre = (payload.get("nombre") or "").strip() or None
+            # Crea el usuario marcándolo como permitido
+            admin_repo.alta_o_actualiza(
+                email=email,
+                niu=niu,
+                nombre=nombre,
+                marcar_permitido=True,
+            )
+
         return {"ok": True, "solicitud": rec}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
