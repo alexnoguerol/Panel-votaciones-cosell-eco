@@ -66,4 +66,3 @@ async def solicitar_alta(body: SolicitudAltaIn, request: Request):
     audit_event("solicitud_alta_creada", actor_email=email, request=request, details=payload)
 
     return {"ok": True, "solicitud_id": sol_id}
-

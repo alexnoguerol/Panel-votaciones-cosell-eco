@@ -33,31 +33,6 @@ def _normaliza_val(v: Optional[str]) -> Optional[str]:
 # --------- Endpoints ---------
 @router.get("/perfil")
 async def get_perfil(user: UserCtx = Depends(get_current_user)):
-    """
-    Devuelve tu perfil y (opcionalmente) las reglas de campos configuradas.
-    """
-    perfil = usuarios_repo.get_perfil(user.user_id) or {}
-    reglas = ajustes_repo.get_perfil_reglas() or {}
-    return {"perfil": perfil, "reglas": reglas}
-
-
-@router.post("/perfil/actualizar")
-async def actualizar_perfil(body: PerfilUpdateIn, user: UserCtx = Depends(get_current_user)):
-    """
-    Aplica cambios de perfil respetando las reglas de edición:
-      - edicion: "libre" -> se aplica directamente
-      - edicion: "aprobacion" -> queda pendiente (no se aplica aquí)
-      - edicion: "bloqueado" -> se ignora
-    Reglas se leen de `ajustes.perfil_campos.json` (get_perfil_reglas).
-    """
-    cambios: Dict[str, Any] = {}
-    pendientes: List[str] = []
-    bloqueados: List[str] = []
-
-    reglas = ajustes_repo.get_perfil_reglas() or {}
-    entrada = {
-        "nombre": _normaliza_val(body.nombre),
-        "grupo": _normaliza_val(body.grupo),
         "curso": _normaliza_val(body.curso),
         "niu": _normaliza_val(body.niu),
     }

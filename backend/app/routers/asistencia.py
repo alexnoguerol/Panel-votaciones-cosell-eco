@@ -160,3 +160,4 @@ async def export_reunion(reunion_id: str, user: UserCtx = Depends(get_current_us
     # Si quieres que sea solo admin, usa aquí tu verificación de admin
     csv_path = exports_repo.export_asistencia_csv(reunion_id.strip())
     return {"ok": True, "csv": csv_path}
+
