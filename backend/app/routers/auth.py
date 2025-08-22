@@ -53,11 +53,30 @@ async def request_otp(body: OtpRequestIn, request: Request):
     if not usuarios_repo.has_any_user(include_eliminados=False):
         user_id = usuarios_repo.bootstrap_first_admin_from_email(email)
         usuarios_repo.ensure_profile_links(user_id, email)
-    else:
-        # Ya hay usuarios -> el email debe existir
-        if not usuarios_repo.user_exists_by_email(email):
-            audit_event("otp_request_denied_unknown_email", actor_email=email, request=request)
-            raise HTTPException(status_code=403, detail="No estás dado de alta. Solicita acceso.")
+
+        # Autologin sin OTP para el primer usuario (no hay SMTP)
+        token = create_token(
+            sub=user_id,
+            email=email,
+            ttl_seconds=getattr(settings, "auth_token_ttl_seconds", 3600),
+        )
+        audit_event(
+            "login_first_admin",
+            actor_user_id=user_id,
+            actor_email=email,
+            request=request,
+        )
+        return {
+            "verified": True,
+            "message": "Primer usuario autenticado",
+            "access_token": token,
+            "token_type": "bearer",
+        }
+
+    # Ya hay usuarios -> el email debe existir
+    if not usuarios_repo.user_exists_by_email(email):
+        audit_event("otp_request_denied_unknown_email", actor_email=email, request=request)
+        raise HTTPException(status_code=403, detail="No estás dado de alta. Solicita acceso.")
 
     # Generar/registrar OTP (el repo gestiona TTL/rate interno)
     ok, msg = otps_repo.request(email=email)

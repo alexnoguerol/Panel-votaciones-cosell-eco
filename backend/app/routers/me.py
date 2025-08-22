@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from ..deps.auth import get_current_user, UserCtx
 from ..repo import usuarios as usuarios_repo
 from ..repo import ajustes as ajustes_repo
+from ..repo import solicitudes as solicitudes_repo
 from ..repo.rgpd import write_user_export
 from ..utils.audit import audit_event
 
@@ -81,6 +82,10 @@ async def actualizar_perfil(body: PerfilUpdateIn, user: UserCtx = Depends(get_cu
     perfil_despues = perfil_antes
     if cambios:
         perfil_despues = usuarios_repo.update_perfil_fields(user.user_id, cambios)
+
+    if pendientes:
+        diff = {campo: entrada[campo] for campo in pendientes}
+        solicitudes_repo.crear_solicitud_mod_perfil(user.user_id, user.email, diff)
 
     # Auditoría
     audit_event(
