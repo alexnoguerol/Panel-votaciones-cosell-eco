@@ -1,3 +1,17 @@
+const API = 'http://localhost:8000';   // ajusta el puerto si es otro
+
+async function requestOtp() {
+  const email = document.getElementById('email').value.trim();
+  const msg = document.getElementById('message');
+  msg.textContent = '';
+
+  // Aquí va tu fetch
+  const resp = await fetch(`${API}/auth/otp/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+
 async function loadTheming() {
   try {
     const resp = await fetch('/ajustes/theming');
@@ -82,3 +96,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('request-otp').addEventListener('click', requestOtp);
   document.getElementById('verify-otp').addEventListener('click', verifyOtp);
 });
+}
