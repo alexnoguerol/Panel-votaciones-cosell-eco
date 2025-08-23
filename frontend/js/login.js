@@ -1,20 +1,8 @@
 const API = 'http://localhost:8000';   // ajusta el puerto si es otro
 
-async function requestOtp() {
-  const email = document.getElementById('email').value.trim();
-  const msg = document.getElementById('message');
-  msg.textContent = '';
-
-  // Aquí va tu fetch
-  const resp = await fetch(`${API}/auth/otp/request`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-
 async function loadTheming() {
   try {
-    const resp = await fetch('/ajustes/theming');
+    const resp = await fetch(`${API}/ajustes/theming`);
     if (resp.ok) {
       const data = await resp.json();
       const root = document.documentElement;
@@ -30,7 +18,7 @@ async function loadTheming() {
 async function loadLogo() {
   const logo = document.getElementById('logo');
   try {
-    const resp = await fetch('/ajustes/logo');
+    const resp = await fetch(`${API}/ajustes/logo`);
     if (resp.ok) {
       const blob = await resp.blob();
       logo.src = URL.createObjectURL(blob);
@@ -47,9 +35,9 @@ async function requestOtp() {
   const msg = document.getElementById('message');
   msg.textContent = '';
   try {
-    const resp = await fetch('/auth/otp/request', {
+    const resp = await fetch(`${API}/auth/otp/request`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
     });
     if (resp.ok) {
@@ -72,9 +60,9 @@ async function verifyOtp() {
   const msg = document.getElementById('message');
   msg.textContent = '';
   try {
-    const resp = await fetch('/auth/otp/verify', {
+    const resp = await fetch(`${API}/auth/otp/verify`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp })
     });
     if (resp.ok) {
@@ -96,4 +84,3 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('request-otp').addEventListener('click', requestOtp);
   document.getElementById('verify-otp').addEventListener('click', verifyOtp);
 });
-}
