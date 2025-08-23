@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from ..deps.auth import get_current_user, UserCtx
 from ..repo import usuarios as usuarios_repo
-from ..repo import asistencia as asistencia_repo
+from backend.app.repo import asistencia as asistencia_repo
 
 router = APIRouter(prefix="/asistencia", tags=["asistencia"])
 

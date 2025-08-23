@@ -58,7 +58,6 @@ app.include_router(admin_usuarios_router.router)
 app.include_router(admin_solicitudes_router.router)
 app.include_router(solicitudes_router.router)
 app.include_router(dev_router.router)
-app.add_middleware(SecurityHeadersMiddleware, dev_mode=bool(getattr(settings, "dev_mode", False)))
 
 @app.get("/health")
 def health():
