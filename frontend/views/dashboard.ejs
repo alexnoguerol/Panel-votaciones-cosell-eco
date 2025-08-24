@@ -35,12 +35,16 @@
         </ul>
       </div>
     </div>
-    <div id="tasks" class="module" style="display:none;">
-      <h2>Tareas pendientes</h2>
+    </div>
+    <div id="tasksIcon" class="tasks-icon">
+      <i class="fa-solid fa-list-check"></i>
+      <span id="taskCount" class="task-badge"></span>
+    </div>
+    <div id="tasksPopup" class="tasks-popup hidden">
+      <h3>Tareas pendientes</h3>
       <ul id="taskList"></ul>
     </div>
-  </div>
-  <script>
+    <script>
     const backend = '<%= backend %>';
     const token = localStorage.getItem('token');
     if (!token) { window.location.href = '/'; }
@@ -138,26 +142,42 @@
       const votosPendientes = (votos || []).filter(v => !votosHechos.has(v.id));
       if (votosPendientes.length) pendientes.push('Tienes ' + votosPendientes.length + ' votaciones pendientes');
 
-      const asistenciasPendientes = (asistencias || []).filter(a =>
-        !(misCheckins || []).some(c => c.actividad_id === a.id && c.accion === 'in')
-      );
-      if (asistenciasPendientes.length) pendientes.push('Hay ' + asistenciasPendientes.length + ' registro de asistencia abiertos');
+        const asistenciasPendientes = (asistencias || []).filter(a =>
+          !(misCheckins || []).some(c => c.actividad_id === a.id && c.accion === 'in')
+        );
+        if (asistenciasPendientes.length) pendientes.push('Hay ' + asistenciasPendientes.length + ' registros de asistencia abiertos');
 
-      document.getElementById('votacionesCount').textContent = votos.length;
-      document.getElementById('asistenciaCount').textContent = asistencias.length;
+        document.getElementById('votacionesCount').textContent = votos.length;
+        document.getElementById('asistenciaCount').textContent = asistencias.length;
 
-      renderSubcards(votos, document.getElementById('votacionesList'), false);
-      renderSubcards(asistencias, document.getElementById('asistenciasList'), true);
+        renderSubcards(votos, document.getElementById('votacionesList'), false);
+        renderSubcards(asistencias, document.getElementById('asistenciasList'), true);
 
-      if (pendientes.length) {
-        const ul = document.getElementById('taskList');
-        pendientes.forEach(t => {
+        const taskIcon = document.getElementById('tasksIcon');
+        const taskPopup = document.getElementById('tasksPopup');
+        const taskList = document.getElementById('taskList');
+        const taskCount = document.getElementById('taskCount');
+
+        if (pendientes.length) {
+          taskCount.textContent = pendientes.length;
+          pendientes.forEach(t => {
+            const li = document.createElement('li');
+            li.textContent = t;
+            taskList.appendChild(li);
+          });
+        } else {
+          taskCount.style.display = 'none';
           const li = document.createElement('li');
-          li.textContent = t;
-          ul.appendChild(li);
+          li.textContent = 'No tienes tareas pendientes';
+          taskList.appendChild(li);
+        }
+
+        taskIcon.addEventListener('click', () => taskPopup.classList.toggle('hidden'));
+        document.addEventListener('click', (e) => {
+          if (!taskPopup.contains(e.target) && !taskIcon.contains(e.target)) {
+            taskPopup.classList.add('hidden');
+          }
         });
-        document.getElementById('tasks').style.display = 'block';
-      }
 
         if (perfil.es_admin) {
           document.getElementById('adminModule').style.display = 'block';
