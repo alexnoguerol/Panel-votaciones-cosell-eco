@@ -195,6 +195,10 @@ body {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+#tasks {
+  margin-bottom: 2rem;
+}
+
 .module h2 {
   margin-top: 0;
   display: flex;

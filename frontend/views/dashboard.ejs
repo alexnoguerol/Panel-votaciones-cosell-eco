@@ -116,6 +116,7 @@
       const votos = await fetchJSON(backend + '/votaciones') || [];
       const misVotos = await fetchJSON(backend + '/votaciones/mis') || [];
       const asistencias = await fetchJSON(backend + '/asistencia/actividades') || [];
+      const misCheckins = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
 
         const perfil = perfilData.perfil || {};
         document.getElementById('userName').textContent = perfil.nombre || '';
@@ -136,7 +137,11 @@
       const votosHechos = new Set((misVotos || []).map(v => v.votacion_id || v.id));
       const votosPendientes = (votos || []).filter(v => !votosHechos.has(v.id));
       if (votosPendientes.length) pendientes.push('Tienes ' + votosPendientes.length + ' votaciones pendientes');
-      if (asistencias.length) pendientes.push('Hay ' + asistencias.length + ' registro de asistencia abiertos');
+
+      const asistenciasPendientes = (asistencias || []).filter(a =>
+        !(misCheckins || []).some(c => c.actividad_id === a.id && c.accion === 'in')
+      );
+      if (asistenciasPendientes.length) pendientes.push('Hay ' + asistenciasPendientes.length + ' registro de asistencia abiertos');
 
       document.getElementById('votacionesCount').textContent = votos.length;
       document.getElementById('asistenciaCount').textContent = asistencias.length;
