@@ -60,6 +60,10 @@ body {
   opacity: 0.9;
 }
 
+.asistencia-card .acciones button.btn-blue { background: #3b82f6; }
+.asistencia-card .acciones button.btn-red { background: #ef4444; }
+.asistencia-card .acciones button.btn-green { background: #22c55e; }
+
 .popup {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -144,4 +148,40 @@ body {
 .message {
   margin-top: 0.5rem;
   color: var(--secondary);
+}
+
+.toast-container {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 2000;
+}
+
+.toast {
+  background: #333;
+  color: #fff;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  min-width: 200px;
+  transform: translateX(100%);
+  animation: slide-in 0.3s forwards;
+}
+
+.toast.success { background: #22c55e; }
+.toast.error { background: #ef4444; }
+.toast.info { background: #3b82f6; }
+
+.toast.hide {
+  animation: slide-out 0.3s forwards;
+}
+
+@keyframes slide-in {
+  to { transform: translateX(0); }
+}
+
+@keyframes slide-out {
+  to { transform: translateX(100%); opacity: 0; }
 }
