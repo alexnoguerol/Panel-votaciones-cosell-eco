@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Panel de Votaciones - Inicio</title>
   <link rel="stylesheet" href="/dashboard.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-dI+X7r1d//p0CQpZK0s8AjtKoaVHgMHqYjgJv1nVbWcv16O3Qe9n3VWeNseyX2VINNodZ4Z1GDZCBo2eG1NsXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     :root {
       --primary: <%= theme.primary %>;
@@ -23,12 +24,12 @@
     </div>
     <div class="modules-grid">
       <div class="module">
-        <h2>Votaciones</h2>
-        <p id="votacionesCount">Cargando...</p>
+        <h2><i class="fa-solid fa-square-poll-vertical"></i><span>Votaciones</span><span id="votacionesCount" class="badge"></span></h2>
+        <div id="votacionesList" class="items"></div>
       </div>
       <div class="module">
-        <h2>Asistencias</h2>
-        <p id="asistenciaCount">Cargando...</p>
+        <h2><i class="fa-regular fa-calendar-check"></i><span>Asistencias</span><span id="asistenciaCount" class="badge"></span></h2>
+        <div id="asistenciasList" class="items"></div>
       </div>
       <div id="adminModule" class="module" style="display:none;">
         <h2>Administración</h2>
@@ -52,6 +53,56 @@
       } catch (err) {
         return null;
       }
+    }
+
+    function formatTimeLeft(ts) {
+      const diff = ts * 1000 - Date.now();
+      if (diff <= 0) return 'Finalizado';
+      const mins = Math.floor(diff / 60000);
+      const hrs = Math.floor(mins / 60);
+      const remMins = mins % 60;
+      return (hrs > 0 ? hrs + 'h ' : '') + remMins + 'm';
+    }
+
+    function createCountdown(el, ts) {
+      function update() {
+        el.textContent = formatTimeLeft(ts);
+      }
+      update();
+      return setInterval(update, 60000);
+    }
+
+    function renderSubcards(list, container, isAsistencia) {
+      container.innerHTML = '';
+      if (!list.length) {
+        const p = document.createElement('p');
+        p.className = 'empty';
+        p.textContent = 'Nada por ahora';
+        container.appendChild(p);
+        return;
+      }
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'subcard';
+
+        const title = document.createElement('h3');
+        title.textContent = item.titulo || '';
+        card.appendChild(title);
+
+        if (isAsistencia) {
+          const loc = document.createElement('p');
+          loc.innerHTML = '<i class="fa-solid fa-location-dot"></i> ' + (item.lugar || 'Sin lugar');
+          card.appendChild(loc);
+        }
+
+        const time = document.createElement('p');
+        time.innerHTML = '<i class="fa-regular fa-clock"></i> <span class="time"></span>';
+        card.appendChild(time);
+        const span = time.querySelector('.time');
+        createCountdown(span, item.fin_ts || 0);
+
+        container.appendChild(card);
+      });
     }
 
     (async () => {
@@ -82,8 +133,11 @@
       if (votosPendientes.length) pendientes.push('Tienes ' + votosPendientes.length + ' votaciones pendientes');
       if (asistencias.length) pendientes.push('Hay ' + asistencias.length + ' registro de asistencia abiertos');
 
-      document.getElementById('votacionesCount').textContent = 'Votaciones activas: ' + (votos.length || 0);
-      document.getElementById('asistenciaCount').textContent = 'Asistencias abiertas: ' + (asistencias.length || 0);
+      document.getElementById('votacionesCount').textContent = votos.length;
+      document.getElementById('asistenciaCount').textContent = asistencias.length;
+
+      renderSubcards(votos, document.getElementById('votacionesList'), false);
+      renderSubcards(asistencias, document.getElementById('asistenciasList'), true);
 
       if (pendientes.length) {
         const ul = document.getElementById('taskList');
