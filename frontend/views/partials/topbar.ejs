@@ -1,0 +1,38 @@
+<div class="top-bar">
+  <button id="menuBtn" class="menu-btn">&#9776;</button>
+  <div class="brand">
+    <img class="logo" src="<%= backend %>/ajustes/logo" onerror="this.src='/logo-placeholder.svg'" alt="Logo" />
+    <span class="brand-title">Consejo de Estudiantes</span>
+  </div>
+  <div id="userArea" class="user-area">
+    <img class="avatar" src="/user-placeholder.svg" alt="Usuario" />
+    <div class="user-text">
+      <span id="userName"></span>
+      <span id="userNIU" class="niu"></span>
+    </div>
+  </div>
+</div>
+
+<div id="sideMenu" class="side-menu"></div>
+
+<div id="userPopup" class="user-popup hidden">
+  <div class="popup-content">
+    <span id="popupClose" class="close">&times;</span>
+    <h2>Perfil</h2>
+    <label>Nombre
+      <input id="nombreInput" type="text" disabled />
+    </label>
+    <label>Grupo
+      <input id="grupoInput" type="text" disabled />
+    </label>
+    <label>Curso
+      <input id="cursoInput" type="text" disabled />
+    </label>
+    <label>NIU
+      <input id="niuInput" type="text" disabled />
+    </label>
+    <div class="actions">
+      <button id="editBtn">✏️ Editar</button>
+    </div>
+  </div>
+</div>

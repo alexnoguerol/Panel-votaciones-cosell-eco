@@ -14,6 +14,7 @@
   </style>
 </head>
 <body>
+  <%- include('partials/topbar', { backend: backend }) %>
   <div class="dashboard">
     <div id="tasks" class="module" style="display:none;">
       <h2>Tareas pendientes</h2>
@@ -59,8 +60,14 @@
       const misVotos = await fetchJSON(backend + '/votaciones/mis') || [];
       const asistencias = await fetchJSON(backend + '/asistencia/actividades') || [];
 
-      const perfil = perfilData.perfil || {};
-      const reglas = reglasData.reglas || {};
+        const perfil = perfilData.perfil || {};
+        document.getElementById('userName').textContent = perfil.nombre || '';
+        document.getElementById('userNIU').textContent = perfil.niu || '';
+        ['nombre','grupo','curso','niu'].forEach(f => {
+          const el = document.getElementById(f + 'Input');
+          if (el) el.value = perfil[f] || '';
+        });
+        const reglas = reglasData.reglas || {};
       const pendientes = [];
       for (const campo in reglas) {
         const conf = reglas[campo];
@@ -87,10 +94,57 @@
         document.getElementById('tasks').style.display = 'block';
       }
 
-      if (perfil.es_admin) {
-        document.getElementById('adminModule').style.display = 'block';
-      }
-    })();
+        if (perfil.es_admin) {
+          document.getElementById('adminModule').style.display = 'block';
+        }
+
+        const userArea = document.getElementById('userArea');
+        const userPopup = document.getElementById('userPopup');
+        const popupClose = document.getElementById('popupClose');
+        userArea.addEventListener('click', () => userPopup.classList.remove('hidden'));
+        popupClose.addEventListener('click', () => userPopup.classList.add('hidden'));
+
+        const menuBtn = document.getElementById('menuBtn');
+        const sideMenu = document.getElementById('sideMenu');
+        menuBtn.addEventListener('click', () => sideMenu.classList.toggle('open'));
+
+        const editBtn = document.getElementById('editBtn');
+        const inputs = ['nombreInput','grupoInput','cursoInput','niuInput'].map(id => document.getElementById(id));
+        let editing = false;
+        editBtn.addEventListener('click', async () => {
+          if (!editing) {
+            inputs.forEach(i => i.disabled = false);
+            editing = true;
+            editBtn.textContent = 'Guardar';
+          } else {
+            const body = {
+              nombre: document.getElementById('nombreInput').value,
+              grupo: document.getElementById('grupoInput').value,
+              curso: document.getElementById('cursoInput').value,
+              niu: document.getElementById('niuInput').value,
+            };
+            const resp = await fetch(backend + '/me/perfil', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+              body: JSON.stringify(body)
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+              inputs.forEach(i => { i.disabled = true; i.classList.remove('updated','pending'); });
+              editing = false;
+              editBtn.textContent = '✏️ Editar';
+              const p = data.perfil || {};
+              ['nombre','grupo','curso','niu'].forEach(f => {
+                document.getElementById(f + 'Input').value = p[f] || '';
+              });
+              document.getElementById('userName').textContent = p.nombre || '';
+              document.getElementById('userNIU').textContent = p.niu || '';
+              (data.aplicados || []).forEach(f => document.getElementById(f + 'Input').classList.add('updated'));
+              (data.pendientes_aprobacion || []).forEach(f => document.getElementById(f + 'Input').classList.add('pending'));
+            }
+          }
+        });
+      })();
   </script>
 </body>
 </html>

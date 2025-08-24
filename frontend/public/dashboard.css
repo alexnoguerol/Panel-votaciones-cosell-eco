@@ -1,8 +1,143 @@
 body {
-  background-color: var(--primary);
-  font-family: Arial, sans-serif;
-  margin: 0;
-}
+    background-color: var(--primary);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding-top: 60px;
+  }
+
+  .top-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .menu-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .brand .logo {
+    height: 40px;
+    width: auto;
+  }
+
+  .user-area {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .user-area .avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+  }
+
+  .user-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .user-text .niu {
+    font-size: 0.8rem;
+    color: #555;
+  }
+
+  .side-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    overflow: hidden;
+    background: white;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    transition: width 0.3s;
+    z-index: 999;
+  }
+
+  .side-menu.open {
+    width: 200px;
+  }
+
+  .user-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+  }
+
+  .user-popup.hidden {
+    display: none;
+  }
+
+  .user-popup .popup-content {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    width: 300px;
+    position: relative;
+  }
+
+  .user-popup .close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    cursor: pointer;
+  }
+
+  .user-popup label {
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .user-popup input {
+    width: 100%;
+    padding: 0.25rem;
+    margin-top: 0.25rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  .user-popup .actions {
+    text-align: right;
+  }
+
+  .updated {
+    background-color: #d1e7dd;
+  }
+
+  .pending {
+    background-color: #fff3cd;
+  }
+
+  .hidden {
+    display: none;
+  }
 
 .dashboard {
   padding: 2rem;
