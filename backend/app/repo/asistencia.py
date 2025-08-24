@@ -328,8 +328,14 @@ def mis_checkins(user_id: str, actividad_id: Optional[str] = None) -> List[Dict[
     registros: List[Dict[str, Any]] = []
     for act in acts:
         for rec in read_jsonl(_checks_path(act)):
-            if rec.get("user_id") == user_id:
-                registros.append(rec)
+            # ``checks.jsonl`` files may contain either one JSON object per line
+            # or a single line with a JSON array (legacy format).  ``rec`` can
+            # therefore be a dict or a list of dicts.  Normalize to an iterable
+            # of records before processing.
+            iterable = rec if isinstance(rec, list) else [rec]
+            for r in iterable:
+                if r.get("user_id") == user_id:
+                    registros.append(r)
     registros.sort(key=lambda r: r.get("ts", 0))
     return registros
 
@@ -339,14 +345,16 @@ def participantes_de_actividad(actividad_id: str) -> List[Dict[str, Any]]:
 
     users: Dict[str, List[Dict[str, Any]]] = {}
     for rec in read_jsonl(_checks_path(actividad_id)):
-        uid = rec.get("user_id")
-        if not uid:
-            continue
-        users.setdefault(uid, []).append({
-            "accion": rec.get("accion"),
-            "ts": rec.get("ts"),
-            "iso": rec.get("iso"),
-        })
+        iterable = rec if isinstance(rec, list) else [rec]
+        for r in iterable:
+            uid = r.get("user_id")
+            if not uid:
+                continue
+            users.setdefault(uid, []).append({
+                "accion": r.get("accion"),
+                "ts": r.get("ts"),
+                "iso": r.get("iso"),
+            })
 
     participantes: List[Dict[str, Any]] = []
     for uid, regs in users.items():
