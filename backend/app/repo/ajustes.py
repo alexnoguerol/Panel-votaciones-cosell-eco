@@ -14,7 +14,7 @@ ensure_dir(AJ_DIR)
 
 F_DOMINIOS        = AJ_DIR / "dominios.json"         # { "permitidos": ["uab.cat", ...] }
 F_SMTP            = AJ_DIR / "smtp.json"             # { "provider":"gmail|outlook|custom", "email":"", "app_password":"...", "from":"", "host":"", "port":587, "use_starttls":true }
-F_THEMING         = AJ_DIR / "theming.json"          # { "primary":"#...", "secondary":"#...", "accent":"#..." }
+F_THEMING         = AJ_DIR / "theming.json"          # { "primary":"#...", "secondary":"#...", "topbar":"#...", "accent":"#..." }
 F_PERFIL_REGLAS   = AJ_DIR / "perfil_campos.json"    # reglas por campo (edicion/obligatorio/activo)
 F_PERFIL_DEFAULTS = AJ_DIR / "perfil_defaults.json"  # { "grupo": "...", "curso": "..." }
 F_NOTIFS          = AJ_DIR / "notificaciones.json"   # { "admin_emails": [...], "recordatorios": {...} }
@@ -116,16 +116,20 @@ def set_smtp(input_cfg: Dict[str, Any]) -> Dict[str, Any]:
 # Theming
 # ============
 def get_theming() -> Dict[str, str]:
-    data = read_json(F_THEMING, default={"primary": "#0ea5e9", "secondary": "#64748b", "accent": "#22c55e"}) or {}
+    data = read_json(
+        F_THEMING,
+        default={"primary": "#0ea5e9", "secondary": "#64748b", "topbar": "#64748b", "accent": "#22c55e"},
+    ) or {}
     return {
         "primary": str(data.get("primary", "#0ea5e9")),
         "secondary": str(data.get("secondary", "#64748b")),
+        "topbar": str(data.get("topbar", "#64748b")),
         "accent": str(data.get("accent", "#22c55e")),
     }
 
 def set_theming(colors: Dict[str, str]) -> Dict[str, str]:
     cur = get_theming()
-    for k in ("primary", "secondary", "accent"):
+    for k in ("primary", "secondary", "topbar", "accent"):
         v = colors.get(k)
         if isinstance(v, str) and v.strip():
             cur[k] = v.strip()

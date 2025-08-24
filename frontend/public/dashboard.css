@@ -11,7 +11,7 @@ body {
     left: 0;
     right: 0;
     height: 60px;
-    background: var(--secondary);
+    background: var(--topbar);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -152,7 +152,7 @@ body {
   }
 
   .user-popup .actions .edit-btn {
-    background-color: var(--accent);
+    background-color: var(--secondary);
     color: #fff;
     border: none;
     padding: 0.5rem 1rem;

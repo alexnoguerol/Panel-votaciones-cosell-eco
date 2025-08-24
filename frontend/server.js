@@ -18,7 +18,7 @@ async function getTheme() {
     if (!res.ok) throw new Error('bad status');
     return await res.json();
   } catch (err) {
-    return { primary: '#0ea5e9', secondary: '#64748b', accent: '#22c55e' };
+    return { primary: '#0ea5e9', secondary: '#64748b', topbar: '#64748b', accent: '#22c55e' };
   }
 }
 

@@ -59,6 +59,7 @@ class PerfilReglasOut(BaseModel):
 class ThemingIn(BaseModel):
     primary: Optional[str] = None
     secondary: Optional[str] = None
+    topbar: Optional[str] = None
     accent: Optional[str] = None
 
 class NotificationsIn(BaseModel):
@@ -181,7 +182,7 @@ def get_theming():
 @router.patch("/theming")
 def patch_theming(body: ThemingIn, user: UserCtx = Depends(require_admin), request: Request = None):
     merged = {}
-    for k in ("primary", "secondary", "accent"):
+    for k in ("primary", "secondary", "topbar", "accent"):
         v = getattr(body, k)
         if v is not None:
             merged[k] = v
