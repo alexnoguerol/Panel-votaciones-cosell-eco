@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Iterable, Iterator, Optional
 
+import json
 import orjson
 from filelock import FileLock
 
@@ -58,4 +59,20 @@ def read_jsonl(path: Path | str) -> Iterator[Any]:
         for line in fh:
             if not line.strip():
                 continue
-            yield orjson.loads(line)
+            try:
+                yield orjson.loads(line)
+            except orjson.JSONDecodeError:
+                # Soporte para líneas con múltiples documentos JSON
+                text = line.decode("utf-8")
+                decoder = json.JSONDecoder()
+                idx = 0
+                length = len(text)
+                while idx < length:
+                    # Saltar espacios en blanco
+                    while idx < length and text[idx].isspace():
+                        idx += 1
+                    if idx >= length:
+                        break
+                    obj, end = decoder.raw_decode(text, idx)
+                    yield obj
+                    idx = end
