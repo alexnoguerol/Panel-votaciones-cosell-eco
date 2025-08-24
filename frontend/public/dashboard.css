@@ -277,6 +277,11 @@ body {
   z-index: 1002;
 }
 
+.tasks-icon img {
+  width: 24px;
+  height: 24px;
+}
+
 .tasks-icon:hover {
   transform: scale(1.1);
 }
