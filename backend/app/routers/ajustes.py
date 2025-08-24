@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any, Literal
 
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field, EmailStr, RootModel
+from pydantic import BaseModel, Field, EmailStr, RootModel, ConfigDict
 
 from ..deps.auth import require_admin, UserCtx
 from ..repo import ajustes as ajustes_repo
@@ -16,7 +16,8 @@ router = APIRouter(prefix="/ajustes", tags=["ajustes"])
 # Modelos
 # ---------------------------
 class DomainsIn(BaseModel):
-    dominios: List[str] = Field(default_factory=list)
+    allowed_domains: List[str] = Field(default_factory=list, alias="dominios")
+    model_config = ConfigDict(populate_by_name=True)
 
 class DomainsOut(BaseModel):
     allowed_domains: List[str] = Field(default_factory=list)
@@ -83,14 +84,20 @@ def get_allowed_domains():
 @router.put("/domains", response_model=DomainsOut)
 def set_allowed_domains(body: DomainsIn, user: UserCtx = Depends(require_admin), request: Request = None):
     clean: List[str] = []
-    for d in body.dominios:
+    for d in body.allowed_domains:
         d = (d or "").strip().lower()
         if d.startswith("@"):
             d = d[1:]
         if d:
             clean.append(d)
     out = ajustes_repo.set_allowed_domains(clean)
-    audit_event("ajustes_domains_update", actor_user_id=user.user_id, actor_email=user.email, request=request, details={"count": len(out)})
+    audit_event(
+        "ajustes_domains_update",
+        actor_user_id=user.user_id,
+        actor_email=user.email,
+        request=request,
+        details={"count": len(out)},
+    )
     return DomainsOut(allowed_domains=out)
 
 # ---------------------------
