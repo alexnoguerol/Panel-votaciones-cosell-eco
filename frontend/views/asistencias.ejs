@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asistencias</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+  <link rel="stylesheet" href="/asistencias.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-dI+X7r1d//p0CQpZK0s8AjtKoaVHgMHqYjgJv1nVbWcv16O3Qe9n3VWeNseyX2VINNodZ4Z1GDZCBo2eG1NsXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --primary: <%= theme.primary %>;
+      --secondary: <%= theme.secondary %>;
+      --topbar: <%= theme.topbar %>;
+      --accent: <%= theme.accent %>;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/topbar', { backend: backend }) %>
+  <div class="asistencias-wrapper">
+    <div id="asistenciasContainer" class="asistencias-container"></div>
+  </div>
+
+  <div id="joinPopup" class="popup hidden">
+    <div class="popup-content">
+      <span id="joinClose" class="close">&times;</span>
+      <h3>Introduce código</h3>
+      <div class="code-inputs">
+        <input type="text" maxlength="1" class="code" />
+        <input type="text" maxlength="1" class="code" />
+        <input type="text" maxlength="1" class="code" />
+        <input type="text" maxlength="1" class="code" />
+        <input type="text" maxlength="1" class="code" />
+        <input type="text" maxlength="1" class="code" />
+      </div>
+      <button id="joinSubmit">Unirse</button>
+      <div id="joinMsg" class="message"></div>
+    </div>
+  </div>
+
+  <div id="infoPopup" class="popup hidden">
+    <div class="popup-content">
+      <span id="infoClose" class="close">&times;</span>
+      <div id="infoBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const backend = '<%= backend %>';
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/'; }
+
+    function qs(sel, ctx=document) { return ctx.querySelector(sel); }
+    function qsa(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
+
+    async function fetchJSON(url, opts={}) {
+      const resp = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + token, ...(opts.headers||{}) },
+        ...opts
+      });
+      if (!resp.ok) return null;
+      return await resp.json();
+    }
+
+    function formatDate(ts){
+      const d = new Date(ts * 1000);
+      return d.toLocaleString();
+    }
+
+    function createCard(act, estado){
+      const card = document.createElement('div');
+      card.className = 'asistencia-card ' + estado;
+      card.dataset.id = act.id;
+      const info = document.createElement('div');
+      info.className = 'info';
+      info.innerHTML = `<h3>${act.titulo}</h3>
+        <p><i class="fa-solid fa-location-dot"></i> ${act.lugar || 'Sin lugar'}</p>
+        <p><i class="fa-regular fa-clock"></i> Inicio: ${formatDate(act.inicio_ts)}</p>
+        <p><i class="fa-regular fa-clock"></i> Fin: ${formatDate(act.fin_ts)}</p>
+        <p class="estado">Unido: <span>${estadoLabel(estado)}</span></p>`;
+      card.appendChild(info);
+      const acciones = document.createElement('div');
+      acciones.className = 'acciones';
+      const joinBtn = document.createElement('button');
+      joinBtn.textContent = 'Unirse';
+      joinBtn.addEventListener('click', () => openJoin(act.id));
+      const outBtn = document.createElement('button');
+      outBtn.textContent = 'Salir';
+      outBtn.addEventListener('click', () => salir(act.id));
+      const infoBtn = document.createElement('button');
+      infoBtn.textContent = 'Más información';
+      infoBtn.addEventListener('click', () => mostrarInfo(act.id));
+      acciones.appendChild(joinBtn);
+      acciones.appendChild(outBtn);
+      acciones.appendChild(infoBtn);
+      card.appendChild(acciones);
+      return card;
+    }
+
+    function estadoLabel(est){
+      if (est === 'si') return 'Sí';
+      if (est === 'pendiente') return 'Pendiente';
+      return 'No';
+    }
+
+    function determinarEstado(act, registros, pendientes){
+      const regs = registros.filter(r => r.actividad_id === act.id);
+      const lastIn = [...regs].reverse().find(r => r.accion === 'in');
+      const lastOut = [...regs].reverse().find(r => r.accion === 'out');
+      if (lastIn && (!lastOut || lastIn.ts > lastOut.ts)) return 'si';
+      if (pendientes[act.id]) return 'pendiente';
+      return 'no';
+    }
+
+    function renderActividades(acts, registros, pendientes){
+      const cont = qs('#asistenciasContainer');
+      cont.innerHTML = '';
+      acts.forEach(act => {
+        const estado = determinarEstado(act, registros, pendientes);
+        const card = createCard(act, estado);
+        cont.appendChild(card);
+      });
+    }
+
+    let actividades = [];
+    let misRegistros = [];
+    let pendientes = JSON.parse(localStorage.getItem('asistenciasPendientes') || '{}');
+    let perfil = {};
+
+    async function cargar(){
+      perfil = (await fetchJSON(backend + '/me/perfil'))?.perfil || {};
+      actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+      misRegistros = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
+      renderActividades(actividades, misRegistros, pendientes);
+    }
+
+    async function openJoin(actId){
+      qs('#joinPopup').classList.remove('hidden');
+      qs('#joinMsg').textContent='';
+      qs('#joinSubmit').onclick = () => submitJoin(actId);
+      qsa('.code-inputs .code').forEach((inp,i,arr)=>{
+        inp.value='';
+        inp.addEventListener('input', e=>{
+          if(e.target.value.length===1 && i<arr.length-1){arr[i+1].focus();}
+        });
+      });
+      const first = qs('.code-inputs .code'); first.focus();
+      first.addEventListener('paste', e=>{
+        const text = e.clipboardData.getData('text').trim();
+        if(text.length===6){
+          qsa('.code-inputs .code').forEach((inp,idx)=>{inp.value=text[idx]||'';});
+        }
+        e.preventDefault();
+      });
+    }
+
+    qs('#joinClose').addEventListener('click', ()=> qs('#joinPopup').classList.add('hidden'));
+    qs('#infoClose').addEventListener('click', ()=> qs('#infoPopup').classList.add('hidden'));
+
+    async function submitJoin(actId){
+      const code = qsa('.code-inputs .code').map(i=>i.value).join('');
+      const resp = await fetch(backend + '/asistencia/check-in', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({ actividad_id: actId, codigo: code })
+      });
+      const data = await resp.json();
+      if(resp.ok){
+        if(data.status==='registrado'){
+          misRegistros.push(data.registro);
+        }else if(data.status==='solicitud'){
+          pendientes[actId]=true;
+          localStorage.setItem('asistenciasPendientes', JSON.stringify(pendientes));
+        }
+        renderActividades(actividades, misRegistros, pendientes);
+        qs('#joinPopup').classList.add('hidden');
+      }else{
+        qs('#joinMsg').textContent = data.detail || 'Error';
+      }
+    }
+
+    async function salir(actId){
+      const resp = await fetch(backend + '/asistencia/check-out', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({ actividad_id: actId })
+      });
+      if(resp.ok){
+        const data = await resp.json();
+        misRegistros.push(data);
+        delete pendientes[actId];
+        localStorage.setItem('asistenciasPendientes', JSON.stringify(pendientes));
+        renderActividades(actividades, misRegistros, pendientes);
+      }
+    }
+
+    async function mostrarInfo(actId){
+      const act = await fetchJSON(backend + '/asistencia/actividades/' + actId);
+      if(!act) return;
+      let html = `<h3>${act.titulo}</h3>`+
+                 `<p><i class='fa-solid fa-location-dot'></i> ${act.lugar || 'Sin lugar'}</p>`+
+                 `<p><i class='fa-regular fa-clock'></i> Inicio: ${formatDate(act.inicio_ts)}</p>`+
+                 `<p><i class='fa-regular fa-clock'></i> Fin: ${formatDate(act.fin_ts)}</p>`+
+                 `<p>Estado: ${act.estado}</p>`;
+      if(perfil.es_admin){
+        html += `<div class='admin-actions'><button id='editAct'>Editar</button></div>`;
+      }
+      qs('#infoBody').innerHTML = html;
+      qs('#infoPopup').classList.remove('hidden');
+      if(perfil.es_admin){
+        qs('#editAct').onclick = ()=> editarActividad(act);
+      }
+    }
+
+    function editarActividad(act){
+      const form = document.createElement('div');
+      form.innerHTML = `<label>Título<input id='actTitulo' value='${act.titulo}' /></label>`+
+        `<label>Lugar<input id='actLugar' value='${act.lugar||''}' /></label>`+
+        `<label>Inicio<input id='actInicio' value='${act.inicio_iso}' /></label>`+
+        `<label>Fin<input id='actFin' value='${act.fin_iso}' /></label>`+
+        `<div class='admin-actions'><button id='saveAct'>Guardar</button><button id='deleteAct'>Eliminar</button><button id='cerrarAct'>Cerrar ahora</button></div>`;
+      qs('#infoBody').innerHTML = form.innerHTML;
+      qs('#saveAct').onclick = async ()=>{
+        const body={
+          titulo: qs('#actTitulo').value,
+          lugar: qs('#actLugar').value,
+          inicio_iso: qs('#actInicio').value,
+          fin_iso: qs('#actFin').value
+        };
+        const resp = await fetch(backend + '/asistencia/actividades/' + act.id, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify(body)
+        });
+        if(resp.ok){
+          actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+          qs('#infoPopup').classList.add('hidden');
+          renderActividades(actividades, misRegistros, pendientes);
+        }
+      };
+      qs('#deleteAct').onclick = async ()=>{
+        await fetch(backend + '/asistencia/actividades/' + act.id, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({ estado: 'eliminada' })
+        });
+        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        qs('#infoPopup').classList.add('hidden');
+        renderActividades(actividades, misRegistros, pendientes);
+      };
+      qs('#cerrarAct').onclick = async ()=>{
+        await fetch(backend + '/asistencia/actividades/' + act.id, {
+          method:'PATCH',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({ estado: 'cerrada' })
+        });
+        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        qs('#infoPopup').classList.add('hidden');
+        renderActividades(actividades, misRegistros, pendientes);
+      };
+    }
+
+    cargar();
+  </script>
+</body>
+</html>
