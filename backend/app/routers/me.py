@@ -110,13 +110,15 @@ async def actualizar_perfil(body: PerfilUpdateIn, user: UserCtx = Depends(get_cu
         if nuevo_valor is None:
             continue  # no cambiar este campo
 
+        # Ignora campos que no cambian realmente
+        if perfil_antes.get(campo) == nuevo_valor:
+            continue
+
         conf = reglas.get(campo, {})
         ed = str(conf.get("edicion", "bloqueado")).lower()
 
         if ed == "libre":
-            # Evita escribir si no hay cambio
-            if perfil_antes.get(campo) != nuevo_valor:
-                cambios[campo] = nuevo_valor
+            cambios[campo] = nuevo_valor
         elif ed == "aprobacion":
             pendientes.append(campo)
         else:

@@ -11,13 +11,14 @@ body {
     left: 0;
     right: 0;
     height: 60px;
-    background: white;
+    background: var(--secondary);
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     z-index: 1000;
+    color: #fff;
   }
 
   .menu-btn {
@@ -25,6 +26,7 @@ body {
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
+    color: inherit;
   }
 
   .brand {
@@ -38,6 +40,11 @@ body {
     width: auto;
   }
 
+  .brand-title {
+    color: inherit;
+    font-weight: 600;
+  }
+
   .user-area {
     display: flex;
     align-items: center;
@@ -49,16 +56,18 @@ body {
     height: 40px;
     border-radius: 50%;
     margin-right: 0.5rem;
+    border: 2px solid #fff;
   }
 
   .user-text {
     display: flex;
     flex-direction: column;
+    color: inherit;
   }
 
   .user-text .niu {
     font-size: 0.8rem;
-    color: #555;
+    opacity: 0.8;
   }
 
   .side-menu {
@@ -96,11 +105,12 @@ body {
   }
 
   .user-popup .popup-content {
-    background: white;
-    padding: 1rem;
+    background: #fff;
+    padding: 1.5rem;
     border-radius: 8px;
-    width: 300px;
+    width: 320px;
     position: relative;
+    border-top: 6px solid var(--primary);
   }
 
   .user-popup .close {
@@ -110,21 +120,48 @@ body {
     cursor: pointer;
   }
 
+  .popup-title {
+    margin-top: 0;
+    color: var(--secondary);
+    text-align: center;
+  }
+
   .user-popup label {
     display: block;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--secondary);
   }
 
   .user-popup input {
     width: 100%;
-    padding: 0.25rem;
+    padding: 0.5rem;
     margin-top: 0.25rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--secondary);
     border-radius: 4px;
+  }
+
+  .user-popup input[disabled] {
+    background: #f3f4f6;
+    cursor: not-allowed;
   }
 
   .user-popup .actions {
     text-align: right;
+    margin-top: 1rem;
+  }
+
+  .user-popup .actions .edit-btn {
+    background-color: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .user-popup .actions .edit-btn:hover {
+    background-color: var(--primary);
   }
 
   .updated {
