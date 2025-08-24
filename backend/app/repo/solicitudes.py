@@ -96,3 +96,28 @@ def resolver(
         raise ValueError("Solicitud no encontrada")
     _rewrite_jsonl(str(SOL_FILE), rows)
     return found
+
+
+def crear_solicitud_asistencia(user_id: str, actividad_id: str, accion: str) -> str:
+    """Crea una solicitud de registro a una actividad de asistencia."""
+
+    ensure_dir(str(SOL_DIR))
+    sol_id = secrets.token_hex(8)
+    rec = {
+        "id": sol_id,
+        "tipo": "asistencia",
+        "estado": "pendiente",
+        "user_id": user_id,
+        "actividad_id": actividad_id,
+        "accion": accion,
+        "creado_en": time.time(),
+    }
+    append_jsonl(str(SOL_FILE), rec)
+    return sol_id
+
+
+def listar_por_actividad(actividad_id: str) -> List[Dict[str, Any]]:
+    """Devuelve solicitudes de asistencia para una actividad."""
+
+    rows = _leer()
+    return [r for r in rows if r.get("tipo") == "asistencia" and r.get("actividad_id") == actividad_id]

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from ..deps.auth import get_current_user, UserCtx
 from ..repo import usuarios as usuarios_repo
 from backend.app.repo import asistencia as asistencia_repo
+from backend.app.repo import solicitudes as solicitudes_repo
 
 router = APIRouter(prefix="/asistencia", tags=["asistencia"])
 
@@ -19,6 +20,7 @@ class NuevaActividadIn(BaseModel):
     ventana_antes_min: int = 15
     ventana_despues_min: int = 15
     permite_fuera_de_hora: bool = False
+    registro_automatico: bool = True
 
 class ActividadOut(BaseModel):
     id: str
@@ -31,10 +33,17 @@ class ActividadOut(BaseModel):
     ventana_antes_min: int
     ventana_despues_min: int
     permite_fuera_de_hora: bool
+    registro_automatico: bool
+    codigo: str | None = None
     estado: str
 
 class CheckInOutIn(BaseModel):
     actividad_id: str
+    accion: str = Field(pattern="^(in|out)$")
+
+
+class CheckCodigoIn(BaseModel):
+    codigo: str = Field(min_length=6, max_length=6)
     accion: str = Field(pattern="^(in|out)$")
 
 class EditActividadIn(BaseModel):
@@ -45,6 +54,7 @@ class EditActividadIn(BaseModel):
     ventana_antes_min: Optional[int] = None
     ventana_despues_min: Optional[int] = None
     permite_fuera_de_hora: Optional[bool] = None
+    registro_automatico: Optional[bool] = None
     cerrar_ahora: Optional[bool] = False
     eliminar: Optional[bool] = None  # más intuitivo que "estado"
 
@@ -59,6 +69,11 @@ class EliminarParticipanteIn(BaseModel):
     user_id: str
     eliminar: bool = True
     motivo: Optional[str] = Field(default="", max_length=240)
+
+
+class ResolverSolicitudIn(BaseModel):
+    estado: str
+    comentario: Optional[str] = None
 
 # ---------- HELPERS ----------
 def _require_admin(user: UserCtx):
@@ -80,6 +95,7 @@ async def crear_actividad(body: NuevaActividadIn, user: UserCtx = Depends(get_cu
             ventana_antes_min=int(body.ventana_antes_min),
             ventana_despues_min=int(body.ventana_despues_min),
             permite_fuera_de_hora=bool(body.permite_fuera_de_hora),
+            registro_automatico=bool(body.registro_automatico),
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -111,6 +127,18 @@ async def check_in_out(body: CheckInOutIn, user: UserCtx = Depends(get_current_u
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+
+@router.post("/check-codigo")
+async def check_in_out_codigo(body: CheckCodigoIn, user: UserCtx = Depends(get_current_user)):
+    try:
+        return asistencia_repo.registrar_check_codigo(
+            user_id=user.user_id,
+            codigo=body.codigo.strip(),
+            accion=body.accion.strip(),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 @router.get("/mis-checkins")
 async def mis_checkins(
     actividad_id: Optional[str] = Query(default=None),
@@ -122,6 +150,40 @@ async def mis_checkins(
 async def participantes(actividad_id: str, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
     return asistencia_repo.participantes_de_actividad(actividad_id.strip())
+
+
+@router.get("/actividades/{actividad_id}/codigo")
+async def obtener_codigo(actividad_id: str, user: UserCtx = Depends(get_current_user)):
+    _require_admin(user)
+    try:
+        codigo = asistencia_repo.obtener_codigo(actividad_id.strip())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"codigo": codigo}
+
+
+@router.get("/actividades/{actividad_id}/solicitudes")
+async def solicitudes_actividad(actividad_id: str, user: UserCtx = Depends(get_current_user)):
+    _require_admin(user)
+    return {"items": solicitudes_repo.listar_por_actividad(actividad_id.strip())}
+
+
+@router.post("/actividades/{actividad_id}/solicitudes/{sol_id}/resolver")
+async def resolver_solicitud(actividad_id: str, sol_id: str, body: ResolverSolicitudIn, user: UserCtx = Depends(get_current_user)):
+    _require_admin(user)
+    try:
+        rec = solicitudes_repo.resolver(
+            sol_id.strip(), body.estado, user.user_id, body.comentario
+        )
+        if rec.get("estado") == "aceptada" and rec.get("tipo") == "asistencia":
+            asistencia_repo.registrar_check(
+                user_id=rec.get("user_id"),
+                actividad_id=rec.get("actividad_id"),
+                accion=rec.get("accion", "in"),
+            )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "solicitud": rec}
 
 @router.post("/actividades/{actividad_id}/ajuste-tiempo")
 async def ajuste_tiempo(actividad_id: str, body: AjusteTiempoIn, user: UserCtx = Depends(get_current_user)):

@@ -25,6 +25,8 @@ from .base import (
     write_json,
 )
 
+from . import solicitudes as solicitudes_repo
+
 DATA_DIR = Path(settings.data_dir)
 
 
@@ -64,6 +66,16 @@ def _checks_path(act_id: str) -> Path:
     return _actividad_dir(act_id) / "checks.jsonl"
 
 
+def obtener_codigo(actividad_id: str) -> str:
+    """Return the code associated with an activity."""
+
+    meta = _load_meta(actividad_id)
+    codigo = meta.get("codigo")
+    if not codigo:
+        raise ValueError("Actividad sin código")
+    return str(codigo)
+
+
 def crear_actividad(
     *,
     creador_id: str,
@@ -74,6 +86,7 @@ def crear_actividad(
     ventana_antes_min: int = 0,
     ventana_despues_min: int = 0,
     permite_fuera_de_hora: bool = False,
+    registro_automatico: bool = True,
 ) -> Dict[str, Any]:
     """Create and persist a new activity."""
 
@@ -85,6 +98,7 @@ def crear_actividad(
         raise ValueError("fin_iso debe ser posterior a inicio_iso")
 
     act_id = secrets.token_hex(8)
+    codigo = f"{secrets.randbelow(10**6):06d}"
     meta = {
         "id": act_id,
         "titulo": titulo.strip(),
@@ -96,6 +110,8 @@ def crear_actividad(
         "ventana_antes_min": int(ventana_antes_min),
         "ventana_despues_min": int(ventana_despues_min),
         "permite_fuera_de_hora": bool(permite_fuera_de_hora),
+        "registro_automatico": bool(registro_automatico),
+        "codigo": codigo,
         "estado": "abierta",
         "creado_por": creador_id,
         "creado_en": time.time(),
@@ -145,6 +161,7 @@ def listar_activas() -> List[Dict[str, Any]]:
             "ventana_antes_min": int(meta.get("ventana_antes_min") or 0),
             "ventana_despues_min": int(meta.get("ventana_despues_min") or 0),
             "permite_fuera_de_hora": bool(meta.get("permite_fuera_de_hora")),
+            "registro_automatico": bool(meta.get("registro_automatico")),
             "estado": meta.get("estado") or meta.get("status") or "abierta",
         }
         actividades.append(act)
@@ -181,6 +198,7 @@ def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, An
         "ventana_antes_min",
         "ventana_despues_min",
         "permite_fuera_de_hora",
+        "registro_automatico",
     ]
 
     for field in simple_fields:
@@ -193,7 +211,7 @@ def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, An
             meta[field.replace("_iso", "_ts")] = ts
         elif field.startswith("ventana"):
             meta[field] = int(val)
-        elif field == "permite_fuera_de_hora":
+        elif field in {"permite_fuera_de_hora", "registro_automatico"}:
             meta[field] = bool(val)
         else:
             v = str(val).strip()
@@ -231,6 +249,34 @@ def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str
     }
     append_jsonl(_checks_path(actividad_id), rec)
     return rec
+
+
+def registrar_check_codigo(user_id: str, codigo: str, accion: str) -> Dict[str, Any]:
+    """Register a check using an activity code.
+
+    If the activity has ``registro_automatico`` enabled the check is stored
+    immediately. Otherwise a pending request is created and its id returned.
+    """
+
+    base = DATA_DIR / "asistencia"
+    if not base.exists():
+        raise ValueError("Código inválido")
+
+    codigo = codigo.strip()
+    for item in base.iterdir():
+        meta = read_json(_meta_path(item.name)) or {}
+        if meta.get("codigo") != codigo:
+            continue
+        if meta.get("estado") != "abierta":
+            raise ValueError("Actividad cerrada")
+        act_id = meta.get("id") or item.name
+        if bool(meta.get("registro_automatico")):
+            rec = registrar_check(user_id=user_id, actividad_id=act_id, accion=accion)
+            return {"status": "registrado", "registro": rec, "actividad_id": act_id}
+        sol_id = solicitudes_repo.crear_solicitud_asistencia(user_id, act_id, accion)
+        return {"status": "solicitud", "solicitud_id": sol_id, "actividad_id": act_id}
+
+    raise ValueError("Código inválido")
 
 
 def mis_checkins(user_id: str, actividad_id: Optional[str] = None) -> List[Dict[str, Any]]:
