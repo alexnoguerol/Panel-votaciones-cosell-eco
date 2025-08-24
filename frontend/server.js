@@ -27,6 +27,11 @@ app.get('/', async (req, res) => {
   res.render('login', { theme, backend: BACKEND_URL });
 });
 
+app.get('/dashboard', async (req, res) => {
+  const theme = await getTheme();
+  res.render('dashboard', { theme, backend: BACKEND_URL });
+});
+
 app.post('/api/request-otp', async (req, res) => {
   try {
     const resp = await fetch(`${BACKEND_URL}/auth/otp/request`, {

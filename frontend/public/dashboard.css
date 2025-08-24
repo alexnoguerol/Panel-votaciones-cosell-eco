@@ -1,0 +1,27 @@
+body {
+  background-color: var(--primary);
+  font-family: Arial, sans-serif;
+  margin: 0;
+}
+
+.dashboard {
+  padding: 2rem;
+}
+
+.modules-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.module {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  flex: 1 1 250px;
+}
+
+.module h2 {
+  margin-top: 0;
+}

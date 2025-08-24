@@ -63,9 +63,8 @@
       });
       const data = await resp.json();
       if (resp.ok && data.access_token) {
-        document.getElementById('step-otp').style.display = 'none';
-        document.getElementById('success').style.display = 'block';
-        document.getElementById('success').textContent = 'Token: ' + data.access_token;
+        localStorage.setItem('token', data.access_token);
+        window.location.href = '/dashboard';
       } else {
         document.getElementById('otpMsg').textContent = data.detail || 'Error al verificar OTP';
       }

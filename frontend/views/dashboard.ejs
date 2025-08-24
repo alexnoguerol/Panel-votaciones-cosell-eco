@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Votaciones - Inicio</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+  <style>
+    :root {
+      --primary: <%= theme.primary %>;
+      --secondary: <%= theme.secondary %>;
+      --accent: <%= theme.accent %>;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div id="tasks" class="module" style="display:none;">
+      <h2>Tareas pendientes</h2>
+      <ul id="taskList"></ul>
+    </div>
+    <div class="modules-grid">
+      <div class="module">
+        <h2>Votaciones</h2>
+        <p id="votacionesCount">Cargando...</p>
+      </div>
+      <div class="module">
+        <h2>Asistencias</h2>
+        <p id="asistenciaCount">Cargando...</p>
+      </div>
+      <div id="adminModule" class="module" style="display:none;">
+        <h2>Administración</h2>
+        <ul>
+          <li>Ajustes</li>
+          <li>Gestión de usuarios</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <script>
+    const backend = '<%= backend %>';
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/'; }
+
+    async function fetchJSON(url) {
+      try {
+        const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
+        if (!resp.ok) return null;
+        return await resp.json();
+      } catch (err) {
+        return null;
+      }
+    }
+
+    (async () => {
+      const perfilData = await fetchJSON(backend + '/me/perfil') || {};
+      const reglasData = await fetchJSON(backend + '/ajustes/perfil/reglas') || {};
+      const votos = await fetchJSON(backend + '/votaciones') || [];
+      const misVotos = await fetchJSON(backend + '/votaciones/mis') || [];
+      const asistencias = await fetchJSON(backend + '/asistencia/actividades') || [];
+
+      const perfil = perfilData.perfil || {};
+      const reglas = reglasData.reglas || {};
+      const pendientes = [];
+      for (const campo in reglas) {
+        const conf = reglas[campo];
+        if (conf.obligatorio && conf.activo && !perfil[campo]) {
+          pendientes.push('Debes completar "' + campo + '" en tu perfil');
+        }
+      }
+
+      const votosHechos = new Set((misVotos || []).map(v => v.votacion_id || v.id));
+      const votosPendientes = (votos || []).filter(v => !votosHechos.has(v.id));
+      if (votosPendientes.length) pendientes.push('Tienes ' + votosPendientes.length + ' votaciones pendientes');
+      if (asistencias.length) pendientes.push('Hay ' + asistencias.length + ' registro de asistencia abiertos');
+
+      document.getElementById('votacionesCount').textContent = 'Votaciones activas: ' + (votos.length || 0);
+      document.getElementById('asistenciaCount').textContent = 'Asistencias abiertas: ' + (asistencias.length || 0);
+
+      if (pendientes.length) {
+        const ul = document.getElementById('taskList');
+        pendientes.forEach(t => {
+          const li = document.createElement('li');
+          li.textContent = t;
+          ul.appendChild(li);
+        });
+        document.getElementById('tasks').style.display = 'block';
+      }
+
+      if (perfil.es_admin) {
+        document.getElementById('adminModule').style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+</html>
