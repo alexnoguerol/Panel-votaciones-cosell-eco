@@ -18,3 +18,6 @@ Datos/
 *.db
 *.log
 *.zip
+
+# Node
+node_modules/

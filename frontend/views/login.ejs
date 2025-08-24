@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de Votaciones - Login</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <style>
+    :root {
+      --primary: <%= theme.primary %>;
+      --secondary: <%= theme.secondary %>;
+      --accent: <%= theme.accent %>;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <img class="logo" src="<%= backend %>/ajustes/logo" onerror="this.src='/logo-placeholder.svg'" alt="Logo" />
+    <h1>Panel de Votaciones</h1>
+    <p class="subtitle">Consejo de Estudiantes</p>
+    <div id="step-email">
+      <h2>Acceso al Panel</h2>
+      <input type="email" id="email" placeholder="Introduce tu email" />
+      <button id="requestBtn">Solicitar OTP</button>
+      <div id="emailMsg" class="message"></div>
+    </div>
+    <div id="step-otp" style="display:none;">
+      <input type="text" id="otp" placeholder="Introduce el OTP" />
+      <button id="verifyBtn">Verificar OTP</button>
+      <div id="otpMsg" class="message"></div>
+    </div>
+    <div id="success" style="display:none;"></div>
+  </div>
+
+  <script>
+    const requestBtn = document.getElementById('requestBtn');
+    const verifyBtn = document.getElementById('verifyBtn');
+
+    requestBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const resp = await fetch('/api/request-otp', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email })
+      });
+      const data = await resp.json();
+      if (resp.ok) {
+        document.getElementById('emailMsg').textContent = data.message || 'OTP enviado';
+        document.getElementById('step-email').style.display = 'none';
+        document.getElementById('step-otp').style.display = 'block';
+      } else {
+        document.getElementById('emailMsg').textContent = data.detail || 'Error al solicitar OTP';
+      }
+    });
+
+    verifyBtn.addEventListener('click', async () => {
+      const email = document.getElementById('email').value;
+      const otp = document.getElementById('otp').value;
+      const resp = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ email, otp })
+      });
+      const data = await resp.json();
+      if (resp.ok && data.access_token) {
+        document.getElementById('step-otp').style.display = 'none';
+        document.getElementById('success').style.display = 'block';
+        document.getElementById('success').textContent = 'Token: ' + data.access_token;
+      } else {
+        document.getElementById('otpMsg').textContent = data.detail || 'Error al verificar OTP';
+      }
+    });
+  </script>
+</body>
+</html>
