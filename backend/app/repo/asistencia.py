@@ -38,9 +38,11 @@ def listar_activas() -> List[Dict[str, Any]]:
         return actividades
 
     for item in base_dir.iterdir():
-        if not item.is_dir():
+        if not item.is_dir() or item.name.startswith("."):
             continue
         meta_file = item / "reunion.json"
+        if not meta_file.is_file():
+            continue
         meta = read_json(meta_file, default={}) or {}
 
         estado = str(meta.get("estado") or meta.get("status") or "").lower()

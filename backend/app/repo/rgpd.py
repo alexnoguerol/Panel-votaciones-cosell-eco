@@ -16,9 +16,12 @@ def _iter_asistencias(user_id: str) -> List[Dict[str, Any]]:
     if not asis_dir.exists():
         return out
     for reunion in asis_dir.iterdir():
-        if not reunion.is_dir():
+        if not reunion.is_dir() or reunion.name.startswith("."):
             continue
-        meta = read_json(reunion / "reunion.json", default={}) or {}
+        meta_file = reunion / "reunion.json"
+        if not meta_file.is_file():
+            continue
+        meta = read_json(meta_file, default={}) or {}
         for rec in read_jsonl(reunion / "asistentes.jsonl"):
             if str(rec.get("user_id")) == user_id:
                 out.append({
