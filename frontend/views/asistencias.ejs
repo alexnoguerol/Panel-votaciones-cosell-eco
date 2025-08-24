@@ -21,6 +21,10 @@
   <div class="asistencias-wrapper">
     <div id="asistenciasContainer" class="asistencias-container"></div>
   </div>
+  <button id="addAct" class="btn-blue admin-add hidden">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-square" viewBox="0 0 16 16"><path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
+    Crear actividad
+  </button>
 
   <div id="joinPopup" class="popup hidden">
     <div class="popup-content">
@@ -69,6 +73,34 @@
     </div>
   </div>
 
+  <div id="createPopup" class="popup hidden">
+    <div class="popup-content">
+      <span id="createClose" class="close">&times;</span>
+      <h3>Nueva actividad</h3>
+      <div class="edit-form">
+        <label>Título<input type="text" id="createTitulo" /></label>
+        <label>Lugar<input type="text" id="createLugar" /></label>
+        <label>Inicio<input type="datetime-local" id="createInicio" /></label>
+        <label>Fin<input type="datetime-local" id="createFin" /></label>
+      </div>
+      <div class="admin-actions">
+        <button id="createSave" class="btn-green">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/></svg>
+          Crear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="codePopup" class="popup hidden">
+    <div class="popup-content code-popup">
+      <span id="codeClose" class="close">&times;</span>
+      <h3>Código de actividad</h3>
+      <div id="codeText" class="code-censored">******</div>
+      <button id="codeCopy" class="btn-blue">Copiar</button>
+    </div>
+  </div>
+
   <div id="toastContainer" class="toast-container"></div>
 
   <script>
@@ -111,12 +143,16 @@
       card.dataset.id = act.id;
       const info = document.createElement('div');
       info.className = 'info';
-      info.innerHTML = `<h3>${act.titulo}</h3>
+      info.innerHTML = `<h3>${act.titulo}${perfil.es_admin ? ' <button class="btn-blue btn-code" data-id="'+act.id+'"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-slash-fill" viewBox="0 0 16 16"><path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7 7 0 0 0 2.79-.588M5.21 3.088A7 7 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474z"/><path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12z"/></svg></button>' : ''}</h3>
         <p><i class="fa-solid fa-location-dot"></i> ${act.lugar || 'Sin lugar'}</p>
         <p><i class="fa-regular fa-clock"></i> Inicio: ${formatDate(act.inicio_ts)}</p>
         <p><i class="fa-regular fa-clock"></i> Fin: ${formatDate(act.fin_ts)}</p>
         <p class="estado">Unido: <span>${estadoLabel(estado)}</span></p>`;
       card.appendChild(info);
+      if(perfil.es_admin){
+        const btn = info.querySelector('.btn-code');
+        if(btn) btn.addEventListener('click', ()=>verCodigo(act.id));
+      }
       const acciones = document.createElement('div');
       acciones.className = 'acciones';
       const joinBtn = document.createElement('button');
@@ -175,6 +211,9 @@
         actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
         misRegistros = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
         renderActividades(actividades, misRegistros, pendientes);
+        if(perfil.es_admin){
+          qs('#addAct').classList.remove('hidden');
+        }
       }
 
     async function openJoin(actId){
@@ -330,12 +369,52 @@
       }
     }
 
-    async function eliminarEdicion(id){
-      const body = { ...obtenerBody(), eliminar: true };
-      const resp = await fetch(backend + '/asistencia/actividades/' + id, {
-        method:'PATCH',
+    function abrirCrear(){
+      qs('#createTitulo').value = '';
+      qs('#createLugar').value = '';
+      qs('#createInicio').value = '';
+      qs('#createFin').value = '';
+      qs('#createPopup').classList.remove('hidden');
+    }
+
+    async function guardarCrear(){
+      const body = {
+        titulo: qs('#createTitulo').value,
+        lugar: qs('#createLugar').value,
+        inicio_iso: new Date(qs('#createInicio').value).toISOString(),
+        fin_iso: new Date(qs('#createFin').value).toISOString()
+      };
+      const resp = await fetch(backend + '/asistencia/actividades', {
+        method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
         body: JSON.stringify(body)
+      });
+      if(resp.ok){
+        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        qs('#createPopup').classList.add('hidden');
+        renderActividades(actividades, misRegistros, pendientes);
+        showToast('Actividad creada','success');
+      }else{
+        showToast('Error al crear','error');
+      }
+    }
+
+    function verCodigo(id){
+      fetchJSON(backend + '/asistencia/actividades/' + id + '/codigo').then(data=>{
+        const codigo = data?.codigo || '';
+        const txt = qs('#codeText');
+        txt.textContent = codigo;
+        txt.classList.add('code-censored');
+        qs('#codePopup').classList.remove('hidden');
+        qs('#codeCopy').onclick = ()=> navigator.clipboard.writeText(codigo);
+        txt.onclick = ()=> txt.classList.toggle('code-censored');
+      });
+    }
+
+    async function eliminarEdicion(id){
+      const resp = await fetch(backend + '/asistencia/actividades/' + id, {
+        method:'DELETE',
+        headers:{'Authorization':'Bearer '+token}
       });
       if(resp.ok){
         actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
@@ -349,17 +428,9 @@
     }
 
     async function cerrarAhora(act){
-      const body = {
-        titulo: act.titulo,
-        lugar: act.lugar,
-        inicio_iso: act.inicio_iso,
-        fin_iso: act.fin_iso,
-        cerrar_ahora: true
-      };
-      const resp = await fetch(backend + '/asistencia/actividades/' + act.id, {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body: JSON.stringify(body)
+      const resp = await fetch(backend + '/asistencia/actividades/' + act.id + '/cerrar', {
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token}
       });
       if(resp.ok){
         actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
@@ -372,6 +443,10 @@
     }
 
     qs('#editClose').addEventListener('click', ()=> qs('#editPopup').classList.add('hidden'));
+    qs('#createClose').addEventListener('click', ()=> qs('#createPopup').classList.add('hidden'));
+    qs('#codeClose').addEventListener('click', ()=> qs('#codePopup').classList.add('hidden'));
+    qs('#createSave').addEventListener('click', guardarCrear);
+    qs('#addAct').addEventListener('click', abrirCrear);
 
     cargar();
   </script>

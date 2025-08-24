@@ -17,9 +17,6 @@ class NuevaActividadIn(BaseModel):
     inicio_iso: str
     fin_iso: str
     lugar: str | None = Field(default=None, max_length=160)
-    ventana_antes_min: int = 15
-    ventana_despues_min: int = 15
-    permite_fuera_de_hora: bool = False
     registro_automatico: bool = True
 
 class ActividadOut(BaseModel):
@@ -30,9 +27,6 @@ class ActividadOut(BaseModel):
     inicio_ts: int
     fin_ts: int
     lugar: str | None
-    ventana_antes_min: int
-    ventana_despues_min: int
-    permite_fuera_de_hora: bool
     registro_automatico: bool
     codigo: str | None = None
     estado: str
@@ -50,12 +44,7 @@ class EditActividadIn(BaseModel):
     inicio_iso: Optional[str] = None
     fin_iso: Optional[str] = None
     lugar: Optional[str] = Field(default=None, max_length=160)
-    ventana_antes_min: Optional[int] = None
-    ventana_despues_min: Optional[int] = None
-    permite_fuera_de_hora: Optional[bool] = None
     registro_automatico: Optional[bool] = None
-    cerrar_ahora: Optional[bool] = False
-    eliminar: Optional[bool] = None  # más intuitivo que "estado"
 
 class AjusteTiempoIn(BaseModel):
     user_id: str
@@ -91,9 +80,6 @@ async def crear_actividad(body: NuevaActividadIn, user: UserCtx = Depends(get_cu
             inicio_iso=body.inicio_iso.strip(),
             fin_iso=body.fin_iso.strip(),
             lugar=(body.lugar or "").strip() or None,
-            ventana_antes_min=int(body.ventana_antes_min),
-            ventana_despues_min=int(body.ventana_despues_min),
-            permite_fuera_de_hora=bool(body.permite_fuera_de_hora),
             registro_automatico=bool(body.registro_automatico),
         )
     except ValueError as e:
@@ -121,6 +107,26 @@ async def editar_actividad(actividad_id: str, body: EditActividadIn, user: UserC
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return act
+
+
+@router.post("/actividades/{actividad_id}/cerrar", response_model=ActividadOut)
+async def cerrar_actividad(actividad_id: str, user: UserCtx = Depends(get_current_user)):
+    _require_admin(user)
+    try:
+        act = asistencia_repo.cerrar_actividad(actividad_id.strip())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return act
+
+
+@router.delete("/actividades/{actividad_id}")
+async def eliminar_actividad(actividad_id: str, user: UserCtx = Depends(get_current_user)):
+    _require_admin(user)
+    try:
+        asistencia_repo.eliminar_actividad(actividad_id.strip())
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True}
 
 @router.post("/check-in")
 async def check_in(body: CheckInCodigoIn, user: UserCtx = Depends(get_current_user)):

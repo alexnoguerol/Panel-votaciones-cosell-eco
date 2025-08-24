@@ -83,9 +83,6 @@ def crear_actividad(
     inicio_iso: str,
     fin_iso: str,
     lugar: Optional[str] = None,
-    ventana_antes_min: int = 0,
-    ventana_despues_min: int = 0,
-    permite_fuera_de_hora: bool = False,
     registro_automatico: bool = True,
 ) -> Dict[str, Any]:
     """Create and persist a new activity."""
@@ -107,9 +104,6 @@ def crear_actividad(
         "inicio_ts": inicio_ts,
         "fin_ts": fin_ts,
         "lugar": (lugar or "").strip() or None,
-        "ventana_antes_min": int(ventana_antes_min),
-        "ventana_despues_min": int(ventana_despues_min),
-        "permite_fuera_de_hora": bool(permite_fuera_de_hora),
         "registro_automatico": bool(registro_automatico),
         "codigo": codigo,
         "estado": "abierta",
@@ -147,7 +141,7 @@ def listar_activas() -> List[Dict[str, Any]]:
         meta = read_json(meta_file, default={}) or {}
 
         estado = str(meta.get("estado") or meta.get("status") or "").lower()
-        if estado in {"cerrada", "cerrado"} or bool(meta.get("eliminado")):
+        if estado in {"cerrada", "cerrado", "eliminada"} or bool(meta.get("eliminado")):
             continue
 
         act: Dict[str, Any] = {
@@ -158,9 +152,6 @@ def listar_activas() -> List[Dict[str, Any]]:
             "inicio_ts": int(meta.get("inicio_ts") or meta.get("inicio_utc_ts") or 0),
             "fin_ts": int(meta.get("fin_ts") or meta.get("cierre_utc_ts") or 0),
             "lugar": meta.get("lugar") or None,
-            "ventana_antes_min": int(meta.get("ventana_antes_min") or 0),
-            "ventana_despues_min": int(meta.get("ventana_despues_min") or 0),
-            "permite_fuera_de_hora": bool(meta.get("permite_fuera_de_hora")),
             "registro_automatico": bool(meta.get("registro_automatico")),
             "estado": meta.get("estado") or meta.get("status") or "abierta",
         }
@@ -189,9 +180,6 @@ def obtener_actividad(actividad_id: str) -> Dict[str, Any]:
         "inicio_ts": int(meta.get("inicio_ts") or meta.get("inicio_utc_ts") or 0),
         "fin_ts": int(meta.get("fin_ts") or meta.get("cierre_utc_ts") or 0),
         "lugar": meta.get("lugar") or None,
-        "ventana_antes_min": int(meta.get("ventana_antes_min") or 0),
-        "ventana_despues_min": int(meta.get("ventana_despues_min") or 0),
-        "permite_fuera_de_hora": bool(meta.get("permite_fuera_de_hora")),
         "registro_automatico": bool(meta.get("registro_automatico")),
         "estado": meta.get("estado") or meta.get("status") or "abierta",
     }
@@ -203,22 +191,11 @@ def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, An
 
     meta = _load_meta(actividad_id)
 
-    if cambios.get("cerrar_ahora"):
-        iso, ts = _now_local()
-        meta["fin_iso"] = iso
-        meta["fin_ts"] = ts
-
-    if "eliminar" in cambios:
-        meta["estado"] = "eliminada" if cambios.get("eliminar") else "abierta"
-
     simple_fields = [
         "titulo",
         "inicio_iso",
         "fin_iso",
         "lugar",
-        "ventana_antes_min",
-        "ventana_despues_min",
-        "permite_fuera_de_hora",
         "registro_automatico",
     ]
 
@@ -230,9 +207,7 @@ def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, An
             iso2, ts = _to_ts(str(val))
             meta[field] = iso2
             meta[field.replace("_iso", "_ts")] = ts
-        elif field.startswith("ventana"):
-            meta[field] = int(val)
-        elif field in {"permite_fuera_de_hora", "registro_automatico"}:
+        elif field in {"registro_automatico"}:
             meta[field] = bool(val)
         else:
             v = str(val).strip()
@@ -241,6 +216,26 @@ def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, An
 
     write_json(_meta_path(actividad_id), meta)
     return meta
+
+
+def cerrar_actividad(actividad_id: str) -> Dict[str, Any]:
+    """Set the activity's closing time to now."""
+
+    meta = _load_meta(actividad_id)
+    iso, ts = _now_local()
+    meta["fin_iso"] = iso
+    meta["fin_ts"] = ts
+    write_json(_meta_path(actividad_id), meta)
+    return meta
+
+
+def eliminar_actividad(actividad_id: str) -> None:
+    """Mark an activity as deleted."""
+
+    meta = _load_meta(actividad_id)
+    meta["estado"] = "eliminada"
+    meta["eliminado"] = True
+    write_json(_meta_path(actividad_id), meta)
 
 
 def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str, Any]:
@@ -253,13 +248,10 @@ def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str
     meta = _load_meta(actividad_id)
     iso_now, ts_now = _now_local()
 
-    if not meta.get("permite_fuera_de_hora"):
-        ventana_antes = int(meta.get("ventana_antes_min", 0)) * 60
-        ventana_despues = int(meta.get("ventana_despues_min", 0)) * 60
-        inicio = int(meta.get("inicio_ts", ts_now)) - ventana_antes
-        fin = int(meta.get("fin_ts", ts_now)) + ventana_despues
-        if not (inicio <= ts_now <= fin):
-            raise ValueError("Fuera de la ventana de registro")
+    inicio = int(meta.get("inicio_ts", ts_now))
+    fin = int(meta.get("fin_ts", ts_now))
+    if not (inicio <= ts_now <= fin):
+        raise ValueError("Fuera de la ventana de registro")
 
     rec = {
         "user_id": user_id,
