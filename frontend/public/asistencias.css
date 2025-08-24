@@ -108,6 +108,39 @@ body {
   gap: 0.5rem;
 }
 
+.admin-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.btn-blue { background: #3b82f6; }
+.btn-red { background: #ef4444; }
+.btn-green { background: #22c55e; }
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-form label {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+}
+
+.edit-form input {
+  padding: 0.4rem;
+  margin-top: 0.25rem;
+}
+
 .message {
   margin-top: 0.5rem;
   color: var(--secondary);

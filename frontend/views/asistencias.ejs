@@ -46,6 +46,29 @@
     </div>
   </div>
 
+  <div id="editPopup" class="popup hidden">
+    <div class="popup-content">
+      <span id="editClose" class="close">&times;</span>
+      <h3>Editar actividad</h3>
+      <div class="edit-form">
+        <label>Título<input type="text" id="editTitulo" /></label>
+        <label>Lugar<input type="text" id="editLugar" /></label>
+        <label>Inicio<input type="datetime-local" id="editInicio" /></label>
+        <label>Fin<input type="datetime-local" id="editFin" /></label>
+      </div>
+      <div class="admin-actions">
+        <button id="saveEdit" class="btn-green">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/></svg>
+          Guardar
+        </button>
+        <button id="deleteEdit" class="btn-red">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16"><path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5M11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47M8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5"/></svg>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const backend = '<%= backend %>';
     const token = localStorage.getItem('token');
@@ -216,62 +239,103 @@
                  `<p><i class='fa-regular fa-clock'></i> Fin: ${formatDate(act.fin_ts)}</p>`+
                  `<p>Estado: ${act.estado}</p>`;
       if(perfil.es_admin){
-        html += `<div class='admin-actions'><button id='editAct'>Editar</button></div>`;
+        html += `<div class='admin-actions'>
+          <button id='editAct' class='btn-blue'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16"><path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/><path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/></svg>
+            Editar
+          </button>
+          <button id='closeAct' class='btn-red'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-door-open-fill" viewBox="0 0 16 16"><path d="M1.5 15a.5.5 0 0 0 0 1h13a.5.5 0 0 0 0-1H13V2.5A1.5 1.5 0 0 0 11.5 1H11V.5a.5.5 0 0 0-.57-.495l-7 1A.5.5 0 0 0 3 1.5V15zM11 2h.5a.5.5 0 0 1 .5.5V15h-1zm-2.5 8c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/></svg>
+            Cerrar ahora
+          </button>
+          <button id='membersAct' class='btn-green'>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people" viewBox="0 0 16 16"><path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1zm-7.978-1L7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002-.014.002zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4m3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0M6.936 9.28a6 6 0 0 0-1.23-.247A7 7 0 0 0 5 9c-4 0-5 3-5 4q0 1 1 1h4.216A2.24 2.24 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816M4.92 10A5.5 5.5 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0m3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4"/></svg>
+            Ver participantes
+          </button>
+        </div>`;
       }
       qs('#infoBody').innerHTML = html;
       qs('#infoPopup').classList.remove('hidden');
       if(perfil.es_admin){
-        qs('#editAct').onclick = ()=> editarActividad(act);
+        qs('#editAct').onclick = ()=> abrirEditar(act);
+        qs('#closeAct').onclick = ()=> cerrarAhora(act);
+        qs('#membersAct').onclick = ()=> { window.location.href = '#'; };
       }
     }
 
-    function editarActividad(act){
-      const form = document.createElement('div');
-      form.innerHTML = `<label>Título<input id='actTitulo' value='${act.titulo}' /></label>`+
-        `<label>Lugar<input id='actLugar' value='${act.lugar||''}' /></label>`+
-        `<label>Inicio<input id='actInicio' value='${act.inicio_iso}' /></label>`+
-        `<label>Fin<input id='actFin' value='${act.fin_iso}' /></label>`+
-        `<div class='admin-actions'><button id='saveAct'>Guardar</button><button id='deleteAct'>Eliminar</button><button id='cerrarAct'>Cerrar ahora</button></div>`;
-      qs('#infoBody').innerHTML = form.innerHTML;
-      qs('#saveAct').onclick = async ()=>{
-        const body={
-          titulo: qs('#actTitulo').value,
-          lugar: qs('#actLugar').value,
-          inicio_iso: qs('#actInicio').value,
-          fin_iso: qs('#actFin').value
-        };
-        const resp = await fetch(backend + '/asistencia/actividades/' + act.id, {
-          method:'PATCH',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body: JSON.stringify(body)
-        });
-        if(resp.ok){
-          actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
-          qs('#infoPopup').classList.add('hidden');
-          renderActividades(actividades, misRegistros, pendientes);
-        }
-      };
-      qs('#deleteAct').onclick = async ()=>{
-        await fetch(backend + '/asistencia/actividades/' + act.id, {
-          method:'PATCH',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body: JSON.stringify({ estado: 'eliminada' })
-        });
-        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
-        qs('#infoPopup').classList.add('hidden');
-        renderActividades(actividades, misRegistros, pendientes);
-      };
-      qs('#cerrarAct').onclick = async ()=>{
-        await fetch(backend + '/asistencia/actividades/' + act.id, {
-          method:'PATCH',
-          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-          body: JSON.stringify({ estado: 'cerrada' })
-        });
-        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
-        qs('#infoPopup').classList.add('hidden');
-        renderActividades(actividades, misRegistros, pendientes);
+    function toLocalInput(iso){
+      const d = new Date(iso);
+      const off = d.getTimezoneOffset();
+      const local = new Date(d.getTime() - off*60000);
+      return local.toISOString().slice(0,16);
+    }
+
+    function abrirEditar(act){
+      qs('#editTitulo').value = act.titulo || '';
+      qs('#editLugar').value = act.lugar || '';
+      qs('#editInicio').value = toLocalInput(act.inicio_iso);
+      qs('#editFin').value = toLocalInput(act.fin_iso);
+      qs('#editPopup').classList.remove('hidden');
+      qs('#saveEdit').onclick = () => guardarEdicion(act.id);
+      qs('#deleteEdit').onclick = () => eliminarEdicion(act.id);
+    }
+
+    function obtenerBody(){
+      return {
+        titulo: qs('#editTitulo').value,
+        lugar: qs('#editLugar').value,
+        inicio_iso: new Date(qs('#editInicio').value).toISOString(),
+        fin_iso: new Date(qs('#editFin').value).toISOString()
       };
     }
+
+    async function guardarEdicion(id){
+      const body = obtenerBody();
+      const resp = await fetch(backend + '/asistencia/actividades/' + id, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify(body)
+      });
+      if(resp.ok){
+        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        qs('#editPopup').classList.add('hidden');
+        qs('#infoPopup').classList.add('hidden');
+        renderActividades(actividades, misRegistros, pendientes);
+      }
+    }
+
+    async function eliminarEdicion(id){
+      const body = { ...obtenerBody(), eliminar: true };
+      await fetch(backend + '/asistencia/actividades/' + id, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify(body)
+      });
+      actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+      qs('#editPopup').classList.add('hidden');
+      qs('#infoPopup').classList.add('hidden');
+      renderActividades(actividades, misRegistros, pendientes);
+    }
+
+    async function cerrarAhora(act){
+      const body = {
+        titulo: act.titulo,
+        lugar: act.lugar,
+        inicio_iso: act.inicio_iso,
+        fin_iso: act.fin_iso,
+        cerrar_ahora: true
+      };
+      await fetch(backend + '/asistencia/actividades/' + act.id, {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify(body)
+      });
+      actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+      qs('#infoPopup').classList.add('hidden');
+      renderActividades(actividades, misRegistros, pendientes);
+    }
+
+    qs('#editClose').addEventListener('click', ()=> qs('#editPopup').classList.add('hidden'));
 
     cargar();
   </script>
