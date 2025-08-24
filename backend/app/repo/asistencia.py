@@ -177,6 +177,27 @@ def _load_meta(act_id: str) -> Dict[str, Any]:
     return meta
 
 
+def obtener_actividad(actividad_id: str) -> Dict[str, Any]:
+    """Obtener información básica de una actividad sin incluir el código."""
+
+    meta = _load_meta(actividad_id)
+    act: Dict[str, Any] = {
+        "id": actividad_id,
+        "titulo": meta.get("titulo") or meta.get("nombre") or "",
+        "inicio_iso": meta.get("inicio_iso") or meta.get("inicio_utc_iso") or "",
+        "fin_iso": meta.get("fin_iso") or meta.get("cierre_iso") or "",
+        "inicio_ts": int(meta.get("inicio_ts") or meta.get("inicio_utc_ts") or 0),
+        "fin_ts": int(meta.get("fin_ts") or meta.get("cierre_utc_ts") or 0),
+        "lugar": meta.get("lugar") or None,
+        "ventana_antes_min": int(meta.get("ventana_antes_min") or 0),
+        "ventana_despues_min": int(meta.get("ventana_despues_min") or 0),
+        "permite_fuera_de_hora": bool(meta.get("permite_fuera_de_hora")),
+        "registro_automatico": bool(meta.get("registro_automatico")),
+        "estado": meta.get("estado") or meta.get("status") or "abierta",
+    }
+    return act
+
+
 def editar_actividad(actividad_id: str, cambios: Dict[str, Any]) -> Dict[str, Any]:
     """Modify fields of an activity and persist the result."""
 
@@ -249,6 +270,21 @@ def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str
     }
     append_jsonl(_checks_path(actividad_id), rec)
     return rec
+
+
+def registrar_check_in_codigo(user_id: str, actividad_id: str, codigo: str) -> Dict[str, Any]:
+    """Registrar un check-in verificando un código para una actividad dada."""
+
+    meta = _load_meta(actividad_id)
+    if str(meta.get("codigo")) != codigo:
+        raise ValueError("Código inválido")
+    if meta.get("estado") != "abierta":
+        raise ValueError("Actividad cerrada")
+    if bool(meta.get("registro_automatico")):
+        rec = registrar_check(user_id=user_id, actividad_id=actividad_id, accion="in")
+        return {"status": "registrado", "registro": rec, "actividad_id": actividad_id}
+    sol_id = solicitudes_repo.crear_solicitud_asistencia(user_id, actividad_id, "in")
+    return {"status": "solicitud", "solicitud_id": sol_id, "actividad_id": actividad_id}
 
 
 def registrar_check_codigo(user_id: str, codigo: str, accion: str) -> Dict[str, Any]:

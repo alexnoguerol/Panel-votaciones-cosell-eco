@@ -37,14 +37,13 @@ class ActividadOut(BaseModel):
     codigo: str | None = None
     estado: str
 
-class CheckInOutIn(BaseModel):
+class CheckInCodigoIn(BaseModel):
     actividad_id: str
-    accion: str = Field(pattern="^(in|out)$")
-
-
-class CheckCodigoIn(BaseModel):
     codigo: str = Field(min_length=6, max_length=6)
-    accion: str = Field(pattern="^(in|out)$")
+
+
+class CheckOutIn(BaseModel):
+    actividad_id: str
 
 class EditActividadIn(BaseModel):
     titulo: Optional[str] = None
@@ -105,6 +104,13 @@ async def crear_actividad(body: NuevaActividadIn, user: UserCtx = Depends(get_cu
 async def listar_actividades(_: UserCtx = Depends(get_current_user)):
     return asistencia_repo.listar_activas()
 
+@router.get("/actividades/{actividad_id}", response_model=ActividadOut)
+async def obtener_actividad(actividad_id: str, _: UserCtx = Depends(get_current_user)):
+    try:
+        return asistencia_repo.obtener_actividad(actividad_id.strip())
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 @router.patch("/actividades/{actividad_id}", response_model=ActividadOut)
 async def editar_actividad(actividad_id: str, body: EditActividadIn, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
@@ -116,25 +122,23 @@ async def editar_actividad(actividad_id: str, body: EditActividadIn, user: UserC
         raise HTTPException(status_code=400, detail=str(e))
     return act
 
-@router.post("/check")
-async def check_in_out(body: CheckInOutIn, user: UserCtx = Depends(get_current_user)):
+@router.post("/check-in")
+async def check_in(body: CheckInCodigoIn, user: UserCtx = Depends(get_current_user)):
     try:
-        return asistencia_repo.registrar_check(
-            user_id=user.user_id,
-            actividad_id=body.actividad_id.strip(),
-            accion=body.accion.strip(),
+        return asistencia_repo.registrar_check_in_codigo(
+            user.user_id, body.actividad_id.strip(), body.codigo.strip()
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/check-codigo")
-async def check_in_out_codigo(body: CheckCodigoIn, user: UserCtx = Depends(get_current_user)):
+@router.post("/check-out")
+async def check_out(body: CheckOutIn, user: UserCtx = Depends(get_current_user)):
     try:
-        return asistencia_repo.registrar_check_codigo(
+        return asistencia_repo.registrar_check(
             user_id=user.user_id,
-            codigo=body.codigo.strip(),
-            accion=body.accion.strip(),
+            actividad_id=body.actividad_id.strip(),
+            accion="out",
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
