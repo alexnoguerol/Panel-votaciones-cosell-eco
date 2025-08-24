@@ -18,10 +18,6 @@
 <body>
   <%- include('partials/topbar', { backend: backend }) %>
   <div class="dashboard">
-    <div id="tasks" class="module" style="display:none;">
-      <h2>Tareas pendientes</h2>
-      <ul id="taskList"></ul>
-    </div>
     <div class="modules-grid">
       <div class="module">
         <h2><i class="fa-solid fa-square-poll-vertical"></i><span>Votaciones</span><span id="votacionesCount" class="badge"></span></h2>
@@ -38,6 +34,10 @@
           <li>Gestión de usuarios</li>
         </ul>
       </div>
+    </div>
+    <div id="tasks" class="module" style="display:none;">
+      <h2>Tareas pendientes</h2>
+      <ul id="taskList"></ul>
     </div>
   </div>
   <script>
@@ -58,10 +58,10 @@
     function formatTimeLeft(ts) {
       const diff = ts * 1000 - Date.now();
       if (diff <= 0) return 'Finalizado';
-      const mins = Math.floor(diff / 60000);
-      const hrs = Math.floor(mins / 60);
-      const remMins = mins % 60;
-      return (hrs > 0 ? hrs + 'h ' : '') + remMins + 'm';
+      const secs = Math.floor(diff / 1000) % 60;
+      const mins = Math.floor(diff / 60000) % 60;
+      const hrs = Math.floor(diff / 3600000);
+      return (hrs > 0 ? hrs + 'h ' : '') + (mins > 0 || hrs > 0 ? mins + 'm ' : '') + secs + 's';
     }
 
     function createCountdown(el, ts) {
@@ -69,7 +69,7 @@
         el.textContent = formatTimeLeft(ts);
       }
       update();
-      return setInterval(update, 60000);
+      return setInterval(update, 1000);
     }
 
     function renderSubcards(list, container, isAsistencia) {
@@ -81,7 +81,7 @@
         container.appendChild(p);
         return;
       }
-      list.forEach(item => {
+      list.slice(0, 3).forEach(item => {
         const card = document.createElement('div');
         card.className = 'subcard';
 
@@ -95,11 +95,16 @@
           card.appendChild(loc);
         }
 
+        const now = Date.now() / 1000;
+        const start = item.inicio_ts || 0;
+        const end = item.fin_ts || 0;
+        const label = now < start ? 'Comienza en: ' : 'Termina en: ';
+        const target = now < start ? start : end;
         const time = document.createElement('p');
-        time.innerHTML = '<i class="fa-regular fa-clock"></i> <span class="time"></span>';
+        time.innerHTML = '<i class="fa-regular fa-clock"></i> ' + label + '<span class="time"></span>';
         card.appendChild(time);
         const span = time.querySelector('.time');
-        createCountdown(span, item.fin_ts || 0);
+        createCountdown(span, target || 0);
 
         container.appendChild(card);
       });
