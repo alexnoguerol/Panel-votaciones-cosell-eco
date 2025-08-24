@@ -23,10 +23,10 @@
         <h2><i class="fa-solid fa-square-poll-vertical"></i><span>Votaciones</span><span id="votacionesCount" class="badge"></span></h2>
         <div id="votacionesList" class="items"></div>
       </div>
-      <div class="module">
-        <h2><i class="fa-regular fa-calendar-check"></i><span>Asistencias</span><span id="asistenciaCount" class="badge"></span></h2>
-        <div id="asistenciasList" class="items"></div>
-      </div>
+        <div id="asistenciasModule" class="module clickable">
+          <h2><i class="fa-regular fa-calendar-check"></i><span>Asistencias</span><span id="asistenciaCount" class="badge"></span></h2>
+          <div id="asistenciasList" class="items"></div>
+        </div>
       <div id="adminModule" class="module" style="display:none;">
         <h2>Administración</h2>
         <ul>
@@ -192,6 +192,11 @@
         const menuBtn = document.getElementById('menuBtn');
         const sideMenu = document.getElementById('sideMenu');
         menuBtn.addEventListener('click', () => sideMenu.classList.toggle('open'));
+
+        const asistenciaModule = document.getElementById('asistenciasModule');
+        asistenciaModule.addEventListener('click', () => {
+          window.location.href = '/asistencias';
+        });
 
         const editBtn = document.getElementById('editBtn');
         const inputs = ['nombreInput','grupoInput','cursoInput','niuInput'].map(id => document.getElementById(id));

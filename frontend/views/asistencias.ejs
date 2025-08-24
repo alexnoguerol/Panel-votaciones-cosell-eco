@@ -128,12 +128,14 @@
     let pendientes = JSON.parse(localStorage.getItem('asistenciasPendientes') || '{}');
     let perfil = {};
 
-    async function cargar(){
-      perfil = (await fetchJSON(backend + '/me/perfil'))?.perfil || {};
-      actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
-      misRegistros = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
-      renderActividades(actividades, misRegistros, pendientes);
-    }
+      async function cargar(){
+        perfil = (await fetchJSON(backend + '/me/perfil'))?.perfil || {};
+        document.getElementById('userName').textContent = perfil.nombre || '';
+        document.getElementById('userNIU').textContent = perfil.niu || '';
+        actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        misRegistros = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
+        renderActividades(actividades, misRegistros, pendientes);
+      }
 
     async function openJoin(actId){
       qs('#joinPopup').classList.remove('hidden');
@@ -155,10 +157,20 @@
       });
     }
 
-    qs('#joinClose').addEventListener('click', ()=> qs('#joinPopup').classList.add('hidden'));
-    qs('#infoClose').addEventListener('click', ()=> qs('#infoPopup').classList.add('hidden'));
+      qs('#joinClose').addEventListener('click', ()=> qs('#joinPopup').classList.add('hidden'));
+      qs('#infoClose').addEventListener('click', ()=> qs('#infoPopup').classList.add('hidden'));
 
-    async function submitJoin(actId){
+      const menuBtn = document.getElementById('menuBtn');
+      const sideMenu = document.getElementById('sideMenu');
+      menuBtn.addEventListener('click', () => sideMenu.classList.toggle('open'));
+
+      const userArea = document.getElementById('userArea');
+      const userPopup = document.getElementById('userPopup');
+      const popupClose = document.getElementById('popupClose');
+      userArea.addEventListener('click', () => userPopup.classList.remove('hidden'));
+      popupClose.addEventListener('click', () => userPopup.classList.add('hidden'));
+
+      async function submitJoin(actId){
       const code = qsa('.code-inputs .code').map(i=>i.value).join('');
       const resp = await fetch(backend + '/asistencia/check-in', {
         method:'POST',

@@ -83,9 +83,25 @@ body {
     z-index: 999;
   }
 
-  .side-menu.open {
-    width: 200px;
-  }
+.side-menu.open {
+  width: 200px;
+}
+
+.side-menu a {
+  display: block;
+  padding: 1rem;
+  color: var(--secondary);
+  text-decoration: none;
+}
+
+.side-menu a i {
+  margin-right: 0.5rem;
+}
+
+.side-menu a:hover {
+  background: var(--primary);
+  color: #fff;
+}
 
   .user-popup {
     position: fixed;
@@ -193,6 +209,10 @@ body {
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   flex: 1 1 250px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.module.clickable {
+  cursor: pointer;
 }
 
 #tasks {
