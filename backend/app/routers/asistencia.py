@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -46,16 +46,14 @@ class EditActividadIn(BaseModel):
     lugar: Optional[str] = Field(default=None, max_length=160)
     registro_automatico: Optional[bool] = None
 
-class AjusteTiempoIn(BaseModel):
-    user_id: str
-    # O bien indicas delta (±segundos), o bien fijas un total exacto:
-    ajuste_segundos: Optional[int] = None
-    total_segundos: Optional[int] = None
-    motivo: Optional[str] = Field(default="", max_length=240)
-
 class EliminarParticipanteIn(BaseModel):
     user_id: str
     eliminar: bool = True
+    motivo: Optional[str] = Field(default="", max_length=240)
+
+class TiempoAjusteIn(BaseModel):
+    modo: Literal["delta", "total"]
+    segundos: int
     motivo: Optional[str] = Field(default="", max_length=240)
 
 
@@ -195,20 +193,29 @@ async def resolver_solicitud(actividad_id: str, sol_id: str, body: ResolverSolic
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True, "solicitud": rec}
 
-@router.post("/actividades/{actividad_id}/ajuste-tiempo")
-async def ajuste_tiempo(actividad_id: str, body: AjusteTiempoIn, user: UserCtx = Depends(get_current_user)):
+@router.post("/actividades/{actividad_id}/participantes/{user_id}/tiempo")
+async def ajustar_tiempo(
+    actividad_id: str,
+    user_id: str,
+    body: TiempoAjusteIn,
+    user: UserCtx = Depends(get_current_user),
+):
     _require_admin(user)
-    if body.ajuste_segundos is None and body.total_segundos is None:
-        raise HTTPException(status_code=400, detail="Indica 'ajuste_segundos' o 'total_segundos'")
-    if body.total_segundos is not None:
+    if body.modo == "total":
         rec = asistencia_repo.set_total(
-            actividad_id.strip(), body.user_id.strip(),
-            int(body.total_segundos), body.motivo or "", user.user_id
+            actividad_id.strip(),
+            user_id.strip(),
+            int(body.segundos),
+            body.motivo or "",
+            user.user_id,
         )
     else:
         rec = asistencia_repo.set_ajuste_delta(
-            actividad_id.strip(), body.user_id.strip(),
-            int(body.ajuste_segundos or 0), body.motivo or "", user.user_id
+            actividad_id.strip(),
+            user_id.strip(),
+            int(body.segundos),
+            body.motivo or "",
+            user.user_id,
         )
     return {"ok": True, "ajuste": rec}
 
