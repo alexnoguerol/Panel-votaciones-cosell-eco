@@ -17,6 +17,7 @@
       toast.addEventListener('animationend',()=>toast.remove(),{once:true});
     },3000);
   }
+  window.showToast = showToast;
   const menuBtn = qs('#menuBtn');
   const sideMenu = qs('#sideMenu');
   if(menuBtn && sideMenu){

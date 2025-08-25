@@ -393,7 +393,10 @@
         txt.textContent = codigo;
         txt.classList.add('code-censored');
         qs('#codePopup').classList.remove('hidden');
-        qs('#codeCopy').onclick = ()=> navigator.clipboard.writeText(codigo);
+        qs('#codeCopy').onclick = ()=>{
+          navigator.clipboard.writeText(codigo);
+          showToast('Código copiado', 'success');
+        };
         txt.onclick = ()=> txt.classList.toggle('code-censored');
       });
     }
