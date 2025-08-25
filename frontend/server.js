@@ -44,12 +44,13 @@ app.get('/dashboard', (req, res) => {
   res.render('dashboard');
 });
 
-app.get('/participantes', (req, res) => {
-  res.render('participantes');
-});
-
 app.get('/asistencias', (req, res) => {
   res.render('asistencias');
+});
+
+// Página de participantes de una actividad de asistencia
+app.get('/asistencias/:id/participantes', (req, res) => {
+  res.render('participantes', { actividadId: req.params.id });
 });
 
 app.post('/api/request-otp', async (req, res) => {
