@@ -48,15 +48,11 @@ class EditActividadIn(BaseModel):
 
 class AjusteTiempoIn(BaseModel):
     user_id: str
-    # O bien indicas delta (±segundos), o bien fijas un total exacto:
-    ajuste_segundos: Optional[int] = None
-    total_segundos: Optional[int] = None
-    motivo: Optional[str] = Field(default="", max_length=240)
+    ajuste_segundos: int
 
 class EliminarParticipanteIn(BaseModel):
     user_id: str
     eliminar: bool = True
-    motivo: Optional[str] = Field(default="", max_length=240)
 
 
 class ResolverSolicitudIn(BaseModel):
@@ -198,29 +194,23 @@ async def resolver_solicitud(actividad_id: str, sol_id: str, body: ResolverSolic
 @router.post("/actividades/{actividad_id}/ajuste-tiempo")
 async def ajuste_tiempo(actividad_id: str, body: AjusteTiempoIn, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
-    if body.ajuste_segundos is None and body.total_segundos is None:
-        raise HTTPException(status_code=400, detail="Indica 'ajuste_segundos' o 'total_segundos'")
-    if body.total_segundos is not None:
-        rec = asistencia_repo.set_total(
-            actividad_id.strip(), body.user_id.strip(),
-            int(body.total_segundos), body.motivo or "", user.user_id
+    if body.ajuste_segundos is None:
+        raise HTTPException(status_code=400, detail="Indica 'ajuste_segundos'")
+    try:
+        rec = asistencia_repo.ajustar_tiempo(
+            actividad_id.strip(), body.user_id.strip(), int(body.ajuste_segundos)
         )
-    else:
-        rec = asistencia_repo.set_ajuste_delta(
-            actividad_id.strip(), body.user_id.strip(),
-            int(body.ajuste_segundos or 0), body.motivo or "", user.user_id
-        )
-    return {"ok": True, "ajuste": rec}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"ok": True, "participante": rec}
 
 @router.post("/actividades/{actividad_id}/eliminar-participante")
 async def eliminar_participante(actividad_id: str, body: EliminarParticipanteIn, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
-    rec = asistencia_repo.set_eliminado(
-        actividad_id.strip(), body.user_id.strip(),
-        bool(body.eliminar), body.motivo or "", user.user_id
-    )
-    estado = "eliminado" if body.eliminar else "restaurado"
-    return {"ok": True, "estado": estado, "registro": rec}
+    if not bool(body.eliminar):
+        raise HTTPException(status_code=400, detail="Debe indicar eliminar=true")
+    asistencia_repo.remover_participante(actividad_id.strip(), body.user_id.strip())
+    return {"ok": True, "estado": "eliminado"}
 
 
 # backend/app/routers/asistencia.py  (añadir al final del archivo)

@@ -26,6 +26,7 @@ from .base import (
 )
 
 from . import solicitudes as solicitudes_repo
+from . import usuarios as usuarios_repo
 
 DATA_DIR = Path(settings.data_dir)
 
@@ -64,6 +65,60 @@ def _meta_path(act_id: str) -> Path:
 
 def _checks_path(act_id: str) -> Path:
     return _actividad_dir(act_id) / "checks.jsonl"
+
+
+def _participantes_path(act_id: str) -> Path:
+    """Ruta del fichero de participantes de la actividad."""
+    return _actividad_dir(act_id) / "participantes.json"
+
+
+def _leer_participantes(act_id: str) -> List[Dict[str, Any]]:
+    return read_json(_participantes_path(act_id), default=[]) or []
+
+
+def _guardar_participantes(act_id: str, items: List[Dict[str, Any]]) -> None:
+    write_json(_participantes_path(act_id), items)
+
+
+def agregar_participante(act_id: str, user_id: str) -> Dict[str, Any]:
+    """Añade un participante con el tiempo completo de la reunión."""
+    participantes = _leer_participantes(act_id)
+    for p in participantes:
+        if p.get("user_id") == user_id:
+            return p
+    meta = _load_meta(act_id)
+    dur = int(meta.get("fin_ts", 0) - meta.get("inicio_ts", 0))
+    perfil = usuarios_repo.get_perfil(user_id)
+    participante = {
+        "user_id": user_id,
+        "nombre": perfil.get("nombre") or "",
+        "niu": perfil.get("niu") or "",
+        "tiempo_segundos": dur,
+    }
+    participantes.append(participante)
+    _guardar_participantes(act_id, participantes)
+    return participante
+
+
+def remover_participante(act_id: str, user_id: str) -> None:
+    participantes = [p for p in _leer_participantes(act_id) if p.get("user_id") != user_id]
+    _guardar_participantes(act_id, participantes)
+
+
+def ajustar_tiempo(act_id: str, user_id: str, delta: int) -> Dict[str, Any]:
+    participantes = _leer_participantes(act_id)
+    for p in participantes:
+        if p.get("user_id") == user_id:
+            p["tiempo_segundos"] = max(0, int(p.get("tiempo_segundos", 0)) + int(delta))
+            _guardar_participantes(act_id, participantes)
+            return p
+    raise ValueError("Participante no encontrado")
+
+
+def listar_participantes(act_id: str) -> List[Dict[str, Any]]:
+    participantes = _leer_participantes(act_id)
+    participantes.sort(key=lambda p: p.get("nombre"))
+    return participantes
 
 
 def obtener_codigo(actividad_id: str) -> str:
@@ -261,6 +316,10 @@ def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str
         "ts": ts_now,
     }
     append_jsonl(_checks_path(actividad_id), rec)
+    if accion == "in":
+        agregar_participante(actividad_id, user_id)
+    else:
+        remover_participante(actividad_id, user_id)
     return rec
 
 
@@ -333,69 +392,5 @@ def mis_checkins(user_id: str, actividad_id: Optional[str] = None) -> List[Dict[
 
 
 def participantes_de_actividad(actividad_id: str) -> List[Dict[str, Any]]:
-    """Return participants of an activity and their records."""
-
-    users: Dict[str, List[Dict[str, Any]]] = {}
-    for rec in read_jsonl(_checks_path(actividad_id)):
-        iterable = rec if isinstance(rec, list) else [rec]
-        for r in iterable:
-            uid = r.get("user_id")
-            if not uid:
-                continue
-            users.setdefault(uid, []).append({
-                "accion": r.get("accion"),
-                "ts": r.get("ts"),
-                "iso": r.get("iso"),
-            })
-
-    participantes: List[Dict[str, Any]] = []
-    for uid, regs in users.items():
-        regs.sort(key=lambda r: r.get("ts", 0))
-        participantes.append({"user_id": uid, "registros": regs})
-    participantes.sort(key=lambda p: p["user_id"])
-    return participantes
-
-
-def set_total(actividad_id: str, user_id: str, total_segundos: int, motivo: str, actor_id: str) -> Dict[str, Any]:
-    """Store a manual total time adjustment for a participant."""
-
-    rec = {
-        "type": "set_total",
-        "user_id": user_id,
-        "total_segundos": int(total_segundos),
-        "motivo": motivo,
-        "actor_id": actor_id,
-        "ts": int(time.time()),
-    }
-    append_jsonl(_actividad_dir(actividad_id) / "ajustes.jsonl", rec)
-    return rec
-
-
-def set_ajuste_delta(actividad_id: str, user_id: str, delta: int, motivo: str, actor_id: str) -> Dict[str, Any]:
-    """Store a delta time adjustment for a participant."""
-
-    rec = {
-        "type": "ajuste_delta",
-        "user_id": user_id,
-        "delta": int(delta),
-        "motivo": motivo,
-        "actor_id": actor_id,
-        "ts": int(time.time()),
-    }
-    append_jsonl(_actividad_dir(actividad_id) / "ajustes.jsonl", rec)
-    return rec
-
-
-def set_eliminado(actividad_id: str, user_id: str, eliminar: bool, motivo: str, actor_id: str) -> Dict[str, Any]:
-    """Mark or unmark a participant as removed."""
-
-    rec = {
-        "type": "eliminado",
-        "user_id": user_id,
-        "eliminar": bool(eliminar),
-        "motivo": motivo,
-        "actor_id": actor_id,
-        "ts": int(time.time()),
-    }
-    append_jsonl(_actividad_dir(actividad_id) / "ajustes.jsonl", rec)
-    return rec
+    """Return aggregated participants of an activity."""
+    return listar_participantes(actividad_id)
