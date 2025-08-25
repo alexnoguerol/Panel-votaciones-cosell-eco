@@ -272,10 +272,19 @@
     let perfil = {};
 
       async function cargar(){
-        perfil = (await fetchJSON(backend + '/me/perfil'))?.perfil || {};
-        document.getElementById('userName').textContent = perfil.nombre || '';
-        document.getElementById('userNIU').textContent = perfil.niu || '';
+        const perfilResp = await fetchJSON(backend + '/me/perfil');
+        if(perfilResp?.perfil){
+          perfil = perfilResp.perfil;
+          document.getElementById('userName').textContent = perfil.nombre || '';
+          document.getElementById('userNIU').textContent = perfil.niu || '';
+        } else {
+          showToast('Error al obtener perfil', 'error');
+        }
+
         actividades = await fetchJSON(backend + '/asistencia/actividades') || [];
+        if(!actividades.length && perfilResp === null){
+          showToast('Error al cargar asistencias', 'error');
+        }
         misRegistros = await fetchJSON(backend + '/asistencia/mis-checkins') || [];
         renderActividades(actividades, misRegistros, pendientes);
         if(perfil.es_admin){
@@ -508,9 +517,18 @@
     qs('#createSave').addEventListener('click', guardarCrear);
     qs('#addAct').addEventListener('click', abrirCrear);
 
-    document.addEventListener('DOMContentLoaded', () => {
-      cargar().catch(err => console.error(err));
-    });
+    function init(){
+      cargar().catch(err => {
+        console.error(err);
+        showToast('Error al cargar asistencias', 'error');
+      });
+    }
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', init);
+    }else{
+      init();
+    }
   </script>
 </body>
 </html>
