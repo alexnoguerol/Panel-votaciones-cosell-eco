@@ -39,10 +39,10 @@
         </div>
       </label>
       <div class="admin-actions">
-        <button id="ajusteMas" class="btn-green round-btn">
+        <button id="ajusteGuardarMas" class="btn-green round-btn">
           <i class="fa-solid fa-plus"></i>
         </button>
-        <button id="ajusteMenos" class="btn-red round-btn">
+        <button id="ajusteGuardarMenos" class="btn-red round-btn">
           <i class="fa-solid fa-minus"></i>
         </button>
       </div>
@@ -73,6 +73,7 @@
 
     let duracion = 0;
     let participanteActual = '';
+      let ajusteOperacion = 1;
 
     async function cargar(){
       const act = await fetchJSON(backend + '/asistencia/actividades/' + actividadId);
@@ -119,9 +120,6 @@
 
     async function expulsar(uid){
       const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/eliminar-participante', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-        body: JSON.stringify({ user_id: uid, eliminar: true, motivo: '' })
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ user_id: uid, eliminar: true, motivo: '' })
@@ -174,11 +172,12 @@
       }
     });
 
-    qs('#ajusteClose').addEventListener('click',()=>qs('#ajustarPopup').classList.add('hidden'));
-    qs('#ajusteGuardar').addEventListener('click',guardarAjuste);
+      qs('#ajusteClose').addEventListener('click',()=>qs('#ajustarPopup').classList.add('hidden'));
+      qs('#ajusteGuardarMas').addEventListener('click',()=>{ajusteOperacion=1;guardarAjuste();});
+      qs('#ajusteGuardarMenos').addEventListener('click',()=>{ajusteOperacion=-1;guardarAjuste();});
 
-    cargar();
-  </script>
-  <script src="/topbar.js"></script>
-</body>
+      cargar();
+    </script>
+    <script src="/topbar.js"></script>
+  </body>
 </html>
