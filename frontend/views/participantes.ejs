@@ -28,23 +28,25 @@
       <span id="ajusteClose" class="close">&times;</span>
       <h3>Ajustar tiempo</h3>
       <label>Minutos
-        <div class="ajuste-controles">
+        <input type="number" id="ajusteMinutos" min="1" value="1" />
+      </label>
+      <div class="admin-actions">
+        <div class="ajuste-col">
           <button id="ajusteMenos" class="ajuste-icon" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-dash-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8"/></svg>
           </button>
-          <input type="number" id="ajusteMinutos" min="1" value="1" />
+          <button id="ajusteGuardarMenos" class="btn-red round-btn">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+        </div>
+        <div class="ajuste-col">
           <button id="ajusteMas" class="ajuste-icon" type="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-circle" viewBox="0 0 16 16"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/></svg>
           </button>
+          <button id="ajusteGuardarMas" class="btn-green round-btn">
+            <i class="fa-solid fa-plus"></i>
+          </button>
         </div>
-      </label>
-      <div class="admin-actions">
-        <button id="ajusteGuardarMas" class="btn-green round-btn">
-          <i class="fa-solid fa-plus"></i>
-        </button>
-        <button id="ajusteGuardarMenos" class="btn-red round-btn">
-          <i class="fa-solid fa-minus"></i>
-        </button>
       </div>
     </div>
   </div>
@@ -170,6 +172,15 @@
       }
     });
 
+      qs('#ajusteMas').addEventListener('click', () => {
+        const inp = qs('#ajusteMinutos');
+        inp.value = parseInt(inp.value || '0', 10) + 1;
+      });
+      qs('#ajusteMenos').addEventListener('click', () => {
+        const inp = qs('#ajusteMinutos');
+        const val = parseInt(inp.value || '0', 10);
+        if (val > 1) inp.value = val - 1;
+      });
       qs('#ajusteClose').addEventListener('click',()=>qs('#ajustarPopup').classList.add('hidden'));
       qs('#ajusteGuardarMas').addEventListener('click',()=>{ajusteOperacion=1;guardarAjuste();});
       qs('#ajusteGuardarMenos').addEventListener('click',()=>{ajusteOperacion=-1;guardarAjuste();});

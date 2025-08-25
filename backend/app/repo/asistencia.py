@@ -443,6 +443,10 @@ def set_eliminado(actividad_id: str, user_id: str, eliminar: bool, motivo: str, 
     }
     append_jsonl(_actividad_dir(actividad_id) / "ajustes.jsonl", rec)
     if eliminar:
+        try:
+            registrar_check(user_id=user_id, actividad_id=actividad_id, accion="out")
+        except Exception:
+            pass
         remove_participante(actividad_id, user_id)
     else:
         add_participante(actividad_id, user_id)
