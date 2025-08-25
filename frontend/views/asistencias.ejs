@@ -132,7 +132,54 @@
       return d.toLocaleString();
     }
 
-    function createCard(act, estado){
+    function formatTimeLeft(ts){
+      const diff = ts * 1000 - Date.now();
+      if(diff <= 0) return 'Finalizado';
+      const secs = Math.floor(diff / 1000) % 60;
+      const mins = Math.floor(diff / 60000) % 60;
+      const hrs = Math.floor(diff / 3600000);
+      return (hrs > 0 ? hrs + 'h ' : '') + (mins > 0 || hrs > 0 ? mins + 'm ' : '') + secs + 's';
+    }
+
+    function createCountdown(el, ts){
+      function update(){
+        el.textContent = formatTimeLeft(ts);
+      }
+      update();
+      return setInterval(update, 1000);
+    }
+
+    function formatDuration(seg){
+      const secs = Math.floor(seg % 60);
+      const mins = Math.floor(seg / 60) % 60;
+      const hrs = Math.floor(seg / 3600);
+      let res = '';
+      if(hrs) res += hrs + 'h ';
+      if(mins || hrs) res += mins + 'm ';
+      res += secs + 's';
+      return res;
+    }
+
+    function calcularTiempo(act, registros){
+      const regs = registros.filter(r => r.actividad_id === act.id);
+      let total = 0;
+      let lastIn = null;
+      regs.forEach(r => {
+        if(r.accion === 'in'){
+          lastIn = r.ts;
+        }else if(r.accion === 'out' && lastIn){
+          total += r.ts - lastIn;
+          lastIn = null;
+        }
+      });
+      if(lastIn){
+        const end = Math.min(Date.now()/1000, act.fin_ts || Date.now()/1000);
+        total += end - lastIn;
+      }
+      return total;
+    }
+
+    function createCard(act, estado, registros){
       const card = document.createElement('div');
       card.className = 'asistencia-card ' + estado;
       card.dataset.id = act.id;
@@ -144,6 +191,29 @@
         <p><i class="fa-regular fa-clock"></i> Fin: ${formatDate(act.fin_ts)}</p>
         <p class="estado">Unido: <span>${estadoLabel(estado)}</span></p>`;
       card.appendChild(info);
+      const now = Date.now()/1000;
+      let label, target;
+      if(now < act.inicio_ts){
+        label = 'Empieza en: ';
+        target = act.inicio_ts;
+      }else if(now < act.fin_ts){
+        label = 'Termina en: ';
+        target = act.fin_ts;
+      }else{
+        label = 'Finalizado';
+        target = 0;
+      }
+      const countdown = document.createElement('p');
+      countdown.innerHTML = `<i class="fa-regular fa-clock"></i> ${label}${target ? '<span class="time"></span>' : ''}`;
+      info.appendChild(countdown);
+      if(target){
+        const span = countdown.querySelector('.time');
+        createCountdown(span, target);
+      }
+      const tiempo = calcularTiempo(act, registros);
+      const tiempoP = document.createElement('p');
+      tiempoP.innerHTML = `<i class="fa-solid fa-hourglass"></i> Tiempo: ${formatDuration(tiempo)}`;
+      info.appendChild(tiempoP);
       if(perfil.es_admin){
         const btn = info.querySelector('.btn-code');
         if(btn) btn.addEventListener('click', ()=>verCodigo(act.id));
@@ -191,7 +261,7 @@
       cont.innerHTML = '';
       acts.forEach(act => {
         const estado = determinarEstado(act, registros, pendientes);
-        const card = createCard(act, estado);
+        const card = createCard(act, estado, registros);
         cont.appendChild(card);
       });
     }
