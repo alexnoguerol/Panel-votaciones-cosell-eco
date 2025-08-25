@@ -80,6 +80,7 @@ def resolver(
     if estado not in {"aceptada", "denegada"}:
         raise ValueError("estado inválido")
     rows = _leer()
+    new_rows: List[Dict[str, Any]] = []
     found: Optional[Dict[str, Any]] = None
     for r in rows:
         if r.get("id") == sol_id:
@@ -91,10 +92,13 @@ def resolver(
             if comentario is not None:
                 r["comentario_admin"] = comentario
             found = r
-            break
+            if r.get("tipo") != "asistencia":
+                new_rows.append(r)
+        else:
+            new_rows.append(r)
     if not found:
         raise ValueError("Solicitud no encontrada")
-    _rewrite_jsonl(str(SOL_FILE), rows)
+    _rewrite_jsonl(str(SOL_FILE), new_rows)
     return found
 
 
@@ -120,4 +124,10 @@ def listar_por_actividad(actividad_id: str) -> List[Dict[str, Any]]:
     """Devuelve solicitudes de asistencia para una actividad."""
 
     rows = _leer()
-    return [r for r in rows if r.get("tipo") == "asistencia" and r.get("actividad_id") == actividad_id]
+    return [
+        r
+        for r in rows
+        if r.get("tipo") == "asistencia"
+        and r.get("actividad_id") == actividad_id
+        and r.get("estado") == "pendiente"
+    ]
