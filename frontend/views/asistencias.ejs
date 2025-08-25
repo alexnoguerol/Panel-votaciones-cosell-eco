@@ -84,6 +84,10 @@
         <label>Lugar<input type="text" id="createLugar" /></label>
         <label>Inicio<input type="datetime-local" id="createInicio" /></label>
         <label>Fin<input type="datetime-local" id="createFin" /></label>
+        <label class="toggle">Revisión manual
+          <input type="checkbox" id="createManual" />
+          <span class="slider"></span>
+        </label>
       </div>
       <div class="admin-actions">
         <button id="createSave" class="btn-green">
@@ -438,6 +442,7 @@
       qs('#createLugar').value = '';
       qs('#createInicio').value = '';
       qs('#createFin').value = '';
+      qs('#createManual').checked = false;
       qs('#createPopup').classList.remove('hidden');
     }
 
@@ -446,7 +451,8 @@
         titulo: qs('#createTitulo').value,
         lugar: qs('#createLugar').value,
         inicio_iso: new Date(qs('#createInicio').value).toISOString(),
-        fin_iso: new Date(qs('#createFin').value).toISOString()
+        fin_iso: new Date(qs('#createFin').value).toISOString(),
+        registro_automatico: !qs('#createManual').checked
       };
       const resp = await fetch(backend + '/asistencia/actividades', {
         method:'POST',
