@@ -66,6 +66,10 @@ body {
   background: #dc3545;
 }
 
+.btn-green {
+  background: #22c55e;
+}
+
 .popup {
   position: fixed;
   top: 0;
@@ -105,6 +109,7 @@ body {
   margin-bottom: 0.75rem;
   font-size: 0.9rem;
   color: var(--secondary);
+  text-align: center;
 }
 
 .popup input {
@@ -122,12 +127,53 @@ body {
 }
 
 .admin-actions button {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.4rem 0.6rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    color: #fff;
+}
+
+.admin-actions .round-btn {
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.4rem 0.6rem;
+  justify-content: center;
+}
+
+.ajuste-controles {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.ajuste-icon {
+  background: none;
   border: none;
-  border-radius: 4px;
   cursor: pointer;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ajuste-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ajuste-icon.selected svg {
+  color: var(--secondary);
+}
+
+.ajuste-controles input {
+  width: 60px;
+  text-align: center;
 }

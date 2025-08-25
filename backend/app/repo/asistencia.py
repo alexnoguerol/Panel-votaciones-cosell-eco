@@ -10,7 +10,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import json
+import os
 import secrets
+import tempfile
 import time
 from datetime import datetime
 
@@ -80,6 +83,16 @@ def _guardar_participantes(act_id: str, items: List[Dict[str, Any]]) -> None:
     write_json(_participantes_path(act_id), items)
 
 
+def _rewrite_jsonl(path: str, rows: List[Dict[str, Any]]) -> None:
+    """Reescribe un archivo JSONL de forma atómica."""
+    ensure_dir(os.path.dirname(path))
+    with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as tf:
+        for r in rows:
+            tf.write(json.dumps(r, ensure_ascii=False) + "\n")
+        tmp = tf.name
+    os.replace(tmp, path)
+
+
 def agregar_participante(act_id: str, user_id: str) -> Dict[str, Any]:
     """Añade un participante con el tiempo completo de la reunión."""
     participantes = _leer_participantes(act_id)
@@ -100,9 +113,18 @@ def agregar_participante(act_id: str, user_id: str) -> Dict[str, Any]:
     return participante
 
 
-def remover_participante(act_id: str, user_id: str) -> None:
+def remover_participante(act_id: str, user_id: str, *, limpiar_registros: bool = False) -> None:
     participantes = [p for p in _leer_participantes(act_id) if p.get("user_id") != user_id]
     _guardar_participantes(act_id, participantes)
+    if limpiar_registros:
+        path = _checks_path(act_id)
+        filas: List[Dict[str, Any]] = []
+        for rec in read_jsonl(path):
+            iterable = rec if isinstance(rec, list) else [rec]
+            for r in iterable:
+                if r.get("user_id") != user_id:
+                    filas.append(r)
+        _rewrite_jsonl(str(path), filas)
 
 
 def ajustar_tiempo(act_id: str, user_id: str, delta: int) -> Dict[str, Any]:

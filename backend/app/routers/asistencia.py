@@ -209,7 +209,9 @@ async def eliminar_participante(actividad_id: str, body: EliminarParticipanteIn,
     _require_admin(user)
     if not bool(body.eliminar):
         raise HTTPException(status_code=400, detail="Debe indicar eliminar=true")
-    asistencia_repo.remover_participante(actividad_id.strip(), body.user_id.strip())
+    asistencia_repo.remover_participante(
+        actividad_id.strip(), body.user_id.strip(), limpiar_registros=True
+    )
     return {"ok": True, "estado": "eliminado"}
 
 
