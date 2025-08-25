@@ -52,6 +52,7 @@ async def _startup():
 app.include_router(auth_router.router)
 app.include_router(me_router.router)
 app.include_router(asistencia_router.router)
+app.include_router(asistencia_router.legacy_router)
 app.include_router(votaciones_router.router)
 app.include_router(ajustes_router.router)
 app.include_router(admin_usuarios_router.router)
