@@ -215,21 +215,12 @@ async def ajuste_tiempo(actividad_id: str, body: AjusteTiempoIn, user: UserCtx =
 @router.post("/actividades/{actividad_id}/eliminar-participante")
 async def eliminar_participante(actividad_id: str, body: EliminarParticipanteIn, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
-<<<<<<< HEAD
-    if not bool(body.eliminar):
-        raise HTTPException(status_code=400, detail="Debe indicar eliminar=true")
-    asistencia_repo.remover_participante(
-        actividad_id.strip(), body.user_id.strip(), limpiar_registros=True
-    )
-    return {"ok": True, "estado": "eliminado"}
-=======
     rec = asistencia_repo.set_eliminado(
         actividad_id.strip(), body.user_id.strip(),
         bool(body.eliminar), body.motivo or "", user.user_id
     )
     estado = "eliminado" if body.eliminar else "restaurado"
     return {"ok": True, "estado": estado, "registro": rec}
->>>>>>> parent of 9626441 (Participantes cargan borrar funciona a medias)
 
 
 # backend/app/routers/asistencia.py  (añadir al final del archivo)
