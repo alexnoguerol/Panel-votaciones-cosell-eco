@@ -101,9 +101,9 @@
 
     async function expulsar(uid){
       const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/eliminar-participante', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body: JSON.stringify({user_id: uid, eliminar: true})
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ user_id: uid, eliminar: true, motivo: '' })
       });
       if(resp.ok){
         showToast('Miembro expulsado', 'info');
