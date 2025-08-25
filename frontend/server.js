@@ -37,6 +37,11 @@ app.get('/asistencias', async (req, res) => {
   res.render('asistencias', { theme, backend: BACKEND_URL });
 });
 
+app.get('/asistencias/:id/participantes', async (req, res) => {
+  const theme = await getTheme();
+  res.render('participantes', { theme, backend: BACKEND_URL, actividadId: req.params.id });
+});
+
 app.post('/api/request-otp', async (req, res) => {
   try {
     const resp = await fetch(`${BACKEND_URL}/auth/otp/request`, {

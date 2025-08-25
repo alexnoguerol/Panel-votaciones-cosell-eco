@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Participantes</title>
+  <link rel="stylesheet" href="/dashboard.css" />
+  <link rel="stylesheet" href="/participantes.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-dI+X7r1d//p0CQpZK0s8AjtKoaVHgMHqYjgJv1nVbWcv16O3Qe9n3VWeNseyX2VINNodZ4Z1GDZCBo2eG1NsXA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    :root {
+      --primary: <%= theme.primary %>;
+      --secondary: <%= theme.secondary %>;
+      --topbar: <%= theme.topbar %>;
+      --accent: <%= theme.accent %>;
+    }
+  </style>
+</head>
+<body>
+  <%- include('partials/topbar', { backend: backend }) %>
+  <div class="participantes-wrapper">
+    <div id="reunionInfo" class="reunion-info"></div>
+    <div id="miembrosContainer" class="miembros-container"></div>
+  </div>
+
+  <div id="ajustarPopup" class="popup hidden">
+    <div class="popup-content">
+      <span id="ajusteClose" class="close">&times;</span>
+      <h3>Ajustar tiempo</h3>
+      <label>Minutos a restar<input type="number" id="ajusteMinutos" min="1" /></label>
+      <div class="admin-actions">
+        <button id="ajusteGuardar" class="btn-green">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-save" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/></svg>
+          Aplicar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const backend = '<%= backend %>';
+    const actividadId = '<%= actividadId %>';
+    const token = localStorage.getItem('token') || '';
+
+    function qs(sel, ctx=document){ return ctx.querySelector(sel); }
+    async function fetchJSON(url, opts={}){
+      const resp = await fetch(url, { headers:{'Authorization':'Bearer '+token, ...(opts.headers||{})}, ...opts });
+      if(!resp.ok) return null;
+      return await resp.json();
+    }
+    function formatDate(ts){
+      const d = new Date(ts*1000);
+      return d.toLocaleString('es-ES');
+    }
+    function formatDuracion(seg){
+      const h = Math.floor(seg/3600);
+      const m = Math.floor((seg%3600)/60);
+      return `${h}h ${m}m`;
+    }
+
+    let duracion = 0;
+    let participanteActual = '';
+
+    async function cargar(){
+      const act = await fetchJSON(backend + '/asistencia/actividades/' + actividadId);
+      if(!act) return;
+      duracion = Math.max(0, (act.fin_ts||0) - (act.inicio_ts||0));
+      qs('#reunionInfo').innerHTML = `
+        <h2>${act.titulo}</h2>
+        <p><i class='fa-solid fa-location-dot'></i> ${act.lugar || 'Sin lugar'}</p>
+        <p><i class='fa-regular fa-clock'></i> Inicio: ${formatDate(act.inicio_ts)}</p>
+        <p><i class='fa-regular fa-clock'></i> Fin: ${formatDate(act.fin_ts)}</p>
+        <p>Duración: ${formatDuracion(duracion)}</p>`;
+
+      const parts = await fetchJSON(backend + '/asistencia/actividades/' + actividadId + '/participantes') || [];
+      qs('#miembrosContainer').innerHTML = '';
+      for(const p of parts){
+        const data = await fetchJSON(backend + '/admin/usuarios?q=' + p.user_id) || {};
+        const perfil = (data.items||[])[0] || {};
+        const card = document.createElement('div');
+        card.className = 'miembro-card';
+        const info = document.createElement('div');
+        info.className = 'info';
+        info.innerHTML = `<strong>${perfil.nombre || p.user_id}</strong><span>${perfil.niu || p.user_id}</span><span>Tiempo: ${formatDuracion(duracion)}</span>`;
+        const acciones = document.createElement('div');
+        acciones.className = 'acciones';
+        acciones.innerHTML = `
+          <button class="btn-red" data-id="${p.user_id}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill-dash" viewBox="0 0 16 16"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M11 12h3a.5.5 0 0 1 0 1h-3a.5.5 0 0 1 0-1m0-7a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path d="M2 13c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/></svg> Expulsar
+          </button>
+          <button class="btn-secondary" data-id="${p.user_id}">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clock-history" viewBox="0 0 16 16"><path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/><path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/><path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/></svg> Ajustar
+          </button>`;
+        card.appendChild(info);
+        card.appendChild(acciones);
+        qs('#miembrosContainer').appendChild(card);
+      }
+      qs('#miembrosContainer').querySelectorAll('.btn-red').forEach(btn=>btn.addEventListener('click',()=>expulsar(btn.dataset.id)));
+      qs('#miembrosContainer').querySelectorAll('.btn-secondary').forEach(btn=>btn.addEventListener('click',()=>abrirAjuste(btn.dataset.id)));
+    }
+
+    async function expulsar(uid){
+      const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/eliminar-participante', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({user_id: uid, eliminar: true})
+      });
+      if(resp.ok){
+        showToast('Miembro expulsado', 'info');
+        cargar();
+      }else{
+        showToast('Error al expulsar', 'error');
+      }
+    }
+
+    function abrirAjuste(uid){
+      participanteActual = uid;
+      qs('#ajusteMinutos').value = '';
+      qs('#ajustarPopup').classList.remove('hidden');
+    }
+
+    async function guardarAjuste(){
+      const mins = parseInt(qs('#ajusteMinutos').value,10);
+      if(isNaN(mins) || mins <= 0){
+        showToast('Minutos inválidos','error');
+        return;
+      }
+      const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/ajuste-tiempo', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body: JSON.stringify({user_id: participanteActual, ajuste_segundos: -mins*60})
+      });
+      if(resp.ok){
+        showToast('Tiempo ajustado','success');
+        qs('#ajustarPopup').classList.add('hidden');
+      }else{
+        showToast('Error al ajustar','error');
+      }
+    }
+
+    qs('#ajusteClose').addEventListener('click',()=>qs('#ajustarPopup').classList.add('hidden'));
+    qs('#ajusteGuardar').addEventListener('click',guardarAjuste);
+
+    cargar();
+  </script>
+  <script src="/topbar.js"></script>
+</body>
+</html>

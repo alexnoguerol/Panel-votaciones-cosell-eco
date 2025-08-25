@@ -308,7 +308,7 @@
       if(perfil.es_admin){
         qs('#editAct').onclick = ()=> abrirEditar(act);
         qs('#closeAct').onclick = ()=> cerrarAhora(act);
-        qs('#membersAct').onclick = ()=> { window.location.href = '#'; };
+        qs('#membersAct').onclick = ()=> { window.location.href = '/asistencias/' + act.id + '/participantes'; };
       }
     }
 
