@@ -91,7 +91,12 @@ def add_participante(act_id: str, user_id: str) -> Dict[str, Any]:
     participantes[user_id] = {
         "nombre": perfil.get("nombre") or user_id,
         "niu": perfil.get("niu") or user_id,
-        "tiempo": _duracion_actividad(act_id),
+        # Guardamos solo el ajuste respecto a la duración de la actividad. De
+        # este modo, si la duración de la reunión cambia más adelante,
+        # el tiempo total de cada participante será
+        # ``duración_actual + ajuste`` y no perderemos las modificaciones
+        # realizadas manualmente.
+        "ajuste": 0,
     }
     _save_participantes(act_id, participantes)
     return participantes[user_id]
@@ -109,9 +114,21 @@ def ajustar_tiempo(act_id: str, user_id: str, minutos: int) -> Dict[str, Any]:
     if user_id not in participantes:
         raise ValueError("Participante no encontrado")
     p = participantes[user_id]
-    p["tiempo"] = max(0, int(p.get("tiempo", 0)) + int(minutos) * 60)
+    # Compatibilidad hacia atrás: si existía un campo ``tiempo`` (antiguo
+    # comportamiento) lo convertimos en un ajuste relativo a la duración
+    # actual de la actividad.
+    ajuste_actual = int(p.get("ajuste", 0))
+    if "ajuste" not in p and "tiempo" in p:
+        ajuste_actual = int(p.get("tiempo", 0)) - _duracion_actividad(act_id)
+    ajuste_actual += int(minutos) * 60
+    p["ajuste"] = ajuste_actual
+    # Ya no persistimos el campo "tiempo" para evitar incoherencias cuando la
+    # duración de la reunión cambia.
+    p.pop("tiempo", None)
     _save_participantes(act_id, participantes)
-    return p
+    # Devolvemos también el tiempo resultante para comodidad del cliente.
+    total = max(0, _duracion_actividad(act_id) + ajuste_actual)
+    return {"user_id": user_id, **p, "tiempo": total}
 def obtener_codigo(actividad_id: str) -> str:
     """Return the code associated with an activity."""
 
@@ -384,16 +401,20 @@ def mis_checkins(user_id: str, actividad_id: Optional[str] = None) -> List[Dict[
 
 def participantes_de_actividad(actividad_id: str) -> List[Dict[str, Any]]:
     """Return participants of an activity with basic info and time."""
-
     participantes = _load_participantes(actividad_id)
+    dur = _duracion_actividad(actividad_id)
     res: List[Dict[str, Any]] = []
     for uid, data in participantes.items():
+        ajuste = int(data.get("ajuste", 0))
+        if "ajuste" not in data and "tiempo" in data:
+            ajuste = int(data.get("tiempo", 0)) - dur
+        tiempo = max(0, dur + ajuste)
         res.append(
             {
                 "user_id": uid,
                 "nombre": data.get("nombre", ""),
                 "niu": data.get("niu", ""),
-                "tiempo": int(data.get("tiempo", 0)),
+                "tiempo": int(tiempo),
             }
         )
     res.sort(key=lambda p: p["user_id"])
