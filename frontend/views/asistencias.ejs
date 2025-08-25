@@ -239,9 +239,27 @@
       if(!finished && estado !== 'si') acciones.appendChild(joinBtn);
       if(!finished && estado === 'si') acciones.appendChild(outBtn);
       acciones.appendChild(infoBtn);
-      card.appendChild(acciones);
-      return card;
-    }
+        card.appendChild(acciones);
+
+        if(perfil.es_admin && !act.registro_automatico){
+          const solSection = document.createElement('details');
+          solSection.className = 'solicitudes-section';
+          const summary = document.createElement('summary');
+          summary.textContent = 'Solicitudes';
+          solSection.appendChild(summary);
+          const list = document.createElement('div');
+          list.className = 'solicitudes-list';
+          solSection.appendChild(list);
+          solSection.addEventListener('toggle', () => {
+            if(solSection.open && !solSection.dataset.loaded){
+              cargarSolicitudes(act.id, list, summary, solSection);
+            }
+          });
+          card.appendChild(solSection);
+        }
+
+        return card;
+      }
 
     function estadoLabel(est){
       if (est === 'si') return 'Sí';
@@ -342,27 +360,73 @@
       }
     }
 
-    async function salir(actId){
-      const resp = await fetch(backend + '/asistencia/check-out', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body: JSON.stringify({ actividad_id: actId })
-      });
-      if(resp.ok){
-        const data = await resp.json();
-        misRegistros.push(data);
-        delete pendientes[actId];
-        localStorage.setItem('asistenciasPendientes', JSON.stringify(pendientes));
-        renderActividades(actividades, misRegistros, pendientes);
-        showToast('Has salido correctamente', 'success');
-      }else{
-        showToast('Error al salir', 'error');
+      async function salir(actId){
+        const resp = await fetch(backend + '/asistencia/check-out', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({ actividad_id: actId })
+        });
+        if(resp.ok){
+          const data = await resp.json();
+          misRegistros.push(data);
+          delete pendientes[actId];
+          localStorage.setItem('asistenciasPendientes', JSON.stringify(pendientes));
+          renderActividades(actividades, misRegistros, pendientes);
+          showToast('Has salido correctamente', 'success');
+        }else{
+          showToast('Error al salir', 'error');
+        }
       }
-    }
 
-    async function mostrarInfo(actId){
-      const act = await fetchJSON(backend + '/asistencia/actividades/' + actId);
-      if(!act) return;
+      async function cargarSolicitudes(actId, cont, summary, section){
+        cont.innerHTML = '';
+        const resp = await fetchJSON(backend + '/asistencia/actividades/' + actId + '/solicitudes');
+        const items = resp?.items || [];
+        summary.textContent = 'Solicitudes (' + items.length + ')';
+        if(!items.length){ section.dataset.loaded = true; return; }
+        for(const sol of items){
+          const userResp = await fetchJSON(backend + '/admin/usuarios?q=' + encodeURIComponent(sol.user_id));
+          const perfilUser = userResp?.items?.[0] || {};
+          const row = document.createElement('div');
+          row.className = 'solicitud-item';
+          row.innerHTML = `<span>${perfilUser.nombre || ''}</span><span>${perfilUser.niu || ''}</span>`;
+          const btns = document.createElement('div');
+          btns.className = 'solicitud-buttons';
+          const btnOk = document.createElement('button');
+          btnOk.className = 'btn-aceptar';
+          btnOk.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-lg" viewBox="0 0 16 16"><path d="M12.736 3.97a.733.733 0 0 1 1.047 0c.286.289.29.756.01 1.05L7.88 12.01a.733.733 0 0 1-1.065.02L3.217 8.384a.757.757 0 0 1 0-1.06.733.733 0 0 1 1.047 0l3.052 3.093 5.4-6.425z"/></svg>`;
+          btnOk.addEventListener('click', ()=>resolverSolicitud(actId, sol.id, 'aceptada', row, summary));
+          const btnNo = document.createElement('button');
+          btnNo.className = 'btn-denegar';
+          btnNo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16"><path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/></svg>`;
+          btnNo.addEventListener('click', ()=>resolverSolicitud(actId, sol.id, 'denegada', row, summary));
+          btns.appendChild(btnOk);
+          btns.appendChild(btnNo);
+          row.appendChild(btns);
+          cont.appendChild(row);
+        }
+        section.dataset.loaded = true;
+      }
+
+      async function resolverSolicitud(actId, solId, estado, row, summary){
+        const resp = await fetch(backend + '/asistencia/actividades/' + actId + '/solicitudes/' + solId + '/resolver', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body: JSON.stringify({ estado })
+        });
+        if(resp.ok){
+          row.remove();
+          const num = row.parentElement.childElementCount;
+          summary.textContent = 'Solicitudes (' + num + ')';
+          showToast('Solicitud ' + (estado==='aceptada'?'aceptada':'denegada'), 'info');
+        }else{
+          showToast('Error al resolver', 'error');
+        }
+      }
+
+      async function mostrarInfo(actId){
+        const act = await fetchJSON(backend + '/asistencia/actividades/' + actId);
+        if(!act) return;
       let html = `<h3>${act.titulo}</h3>`+
                  `<p><i class='fa-solid fa-location-dot'></i> ${act.lugar || 'Sin lugar'}</p>`+
                  `<p><i class='fa-regular fa-clock'></i> Inicio: ${formatDate(act.inicio_ts)}</p>`+
