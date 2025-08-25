@@ -41,6 +41,7 @@
     const backend = '<%= backend %>';
     const actividadId = '<%= actividadId %>';
     const token = localStorage.getItem('token') || '';
+    const miembrosContainer = qs('#miembrosContainer');
 
     function qs(sel, ctx=document){ return ctx.querySelector(sel); }
     async function fetchJSON(url, opts={}){
@@ -63,7 +64,12 @@
 
     async function cargar(){
       const act = await fetchJSON(backend + '/asistencia/actividades/' + actividadId);
-      if(!act) return;
+      if(!act){
+        if (typeof showToast === 'function') {
+          showToast('No se pudo cargar la actividad', 'error');
+        }
+        return;
+      }
       duracion = Math.max(0, (act.fin_ts||0) - (act.inicio_ts||0));
       qs('#reunionInfo').innerHTML = `
         <h2>${act.titulo}</h2>
@@ -73,7 +79,7 @@
         <p>Duración: ${formatDuracion(duracion)}</p>`;
 
       const parts = await fetchJSON(backend + '/asistencia/actividades/' + actividadId + '/participantes') || [];
-      qs('#miembrosContainer').innerHTML = '';
+      miembrosContainer.innerHTML = '';
       for(const p of parts){
         const data = await fetchJSON(backend + '/admin/usuarios?q=' + p.user_id) || {};
         const perfil = (data.items||[])[0] || {};
@@ -93,7 +99,7 @@
           </button>`;
         card.appendChild(info);
         card.appendChild(acciones);
-        qs('#miembrosContainer').appendChild(card);
+        miembrosContainer.appendChild(card);
       }
       qs('#miembrosContainer').querySelectorAll('.btn-red').forEach(btn=>btn.addEventListener('click',()=>expulsar(btn.dataset.id)));
       qs('#miembrosContainer').querySelectorAll('.btn-secondary').forEach(btn=>btn.addEventListener('click',()=>abrirAjuste(btn.dataset.id)));
@@ -101,6 +107,9 @@
 
     async function expulsar(uid){
       const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/eliminar-participante', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ user_id: uid, eliminar: true, motivo: '' })
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ user_id: uid, eliminar: true, motivo: '' })
@@ -137,6 +146,20 @@
         showToast('Error al ajustar','error');
       }
     }
+
+    miembrosContainer.addEventListener('click', e => {
+      const redBtn = e.target.closest('.btn-red');
+      if(redBtn){
+        e.preventDefault();
+        expulsar(redBtn.dataset.id);
+        return;
+      }
+      const adjBtn = e.target.closest('.btn-secondary');
+      if(adjBtn){
+        e.preventDefault();
+        abrirAjuste(adjBtn.dataset.id);
+      }
+    });
 
     qs('#ajusteClose').addEventListener('click',()=>qs('#ajustarPopup').classList.add('hidden'));
     qs('#ajusteGuardar').addEventListener('click',guardarAjuste);
