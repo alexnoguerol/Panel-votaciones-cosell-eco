@@ -62,6 +62,10 @@ body {
   background: var(--secondary);
 }
 
+.btn-red {
+  background: #dc3545;
+}
+
 .popup {
   position: fixed;
   top: 0;
