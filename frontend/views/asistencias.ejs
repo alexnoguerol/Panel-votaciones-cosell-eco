@@ -212,7 +212,6 @@
       }
       const tiempo = calcularTiempo(act, registros);
       const tiempoP = document.createElement('p');
-      tiempoP.innerHTML = `<i class="fa-solid fa-hourglass"></i> Tiempo: ${formatDuration(tiempo)}`;
       info.appendChild(tiempoP);
       if(perfil.es_admin){
         const btn = info.querySelector('.btn-code');

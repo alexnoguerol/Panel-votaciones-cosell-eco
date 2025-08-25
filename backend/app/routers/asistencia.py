@@ -160,16 +160,6 @@ async def participantes(actividad_id: str, user: UserCtx = Depends(get_current_u
     return asistencia_repo.participantes_de_actividad(actividad_id.strip())
 
 
-# Rutas alternativas para compatibilidad con clientes antiguos
-legacy_router = APIRouter(prefix="/asistencias", tags=["asistencia"])
-
-
-@legacy_router.get("/{actividad_id}/participantes")
-async def participantes_legacy(actividad_id: str, user: UserCtx = Depends(get_current_user)):
-    _require_admin(user)
-    return asistencia_repo.participantes_de_actividad(actividad_id.strip())
-
-
 @router.get("/actividades/{actividad_id}/codigo")
 async def obtener_codigo(actividad_id: str, user: UserCtx = Depends(get_current_user)):
     _require_admin(user)
