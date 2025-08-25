@@ -24,6 +24,7 @@ from .base import (
 )
 
 from . import solicitudes as solicitudes_repo
+from . import usuarios as usuarios_repo
 
 DATA_DIR = Path(settings.data_dir)
 
@@ -62,6 +63,55 @@ def _meta_path(act_id: str) -> Path:
 
 def _checks_path(act_id: str) -> Path:
     return _actividad_dir(act_id) / "checks.jsonl"
+
+
+def _participantes_path(act_id: str) -> Path:
+    return _actividad_dir(act_id) / "participantes.json"
+
+
+def _load_participantes(act_id: str) -> Dict[str, Any]:
+    return read_json(_participantes_path(act_id)) or {}
+
+
+def _save_participantes(act_id: str, data: Dict[str, Any]) -> None:
+    ensure_dir(_actividad_dir(act_id))
+    write_json(_participantes_path(act_id), data)
+
+
+def _duracion_actividad(act_id: str) -> int:
+    meta = _load_meta(act_id)
+    return int(meta.get("fin_ts", 0)) - int(meta.get("inicio_ts", 0))
+
+
+def add_participante(act_id: str, user_id: str) -> Dict[str, Any]:
+    participantes = _load_participantes(act_id)
+    if user_id in participantes:
+        return participantes[user_id]
+    perfil = usuarios_repo.get_perfil(user_id)
+    participantes[user_id] = {
+        "nombre": perfil.get("nombre") or user_id,
+        "niu": perfil.get("niu") or user_id,
+        "tiempo": _duracion_actividad(act_id),
+    }
+    _save_participantes(act_id, participantes)
+    return participantes[user_id]
+
+
+def remove_participante(act_id: str, user_id: str) -> None:
+    participantes = _load_participantes(act_id)
+    if user_id in participantes:
+        participantes.pop(user_id)
+        _save_participantes(act_id, participantes)
+
+
+def ajustar_tiempo(act_id: str, user_id: str, minutos: int) -> Dict[str, Any]:
+    participantes = _load_participantes(act_id)
+    if user_id not in participantes:
+        raise ValueError("Participante no encontrado")
+    p = participantes[user_id]
+    p["tiempo"] = max(0, int(p.get("tiempo", 0)) + int(minutos) * 60)
+    _save_participantes(act_id, participantes)
+    return p
 def obtener_codigo(actividad_id: str) -> str:
     """Return the code associated with an activity."""
 
@@ -257,6 +307,10 @@ def registrar_check(*, user_id: str, actividad_id: str, accion: str) -> Dict[str
         "ts": ts_now,
     }
     append_jsonl(_checks_path(actividad_id), rec)
+    if accion == "in":
+        add_participante(actividad_id, user_id)
+    else:
+        remove_participante(actividad_id, user_id)
     return rec
 
 
@@ -329,27 +383,21 @@ def mis_checkins(user_id: str, actividad_id: Optional[str] = None) -> List[Dict[
 
 
 def participantes_de_actividad(actividad_id: str) -> List[Dict[str, Any]]:
-    """Return participants of an activity and their records."""
+    """Return participants of an activity with basic info and time."""
 
-    users: Dict[str, List[Dict[str, Any]]] = {}
-    for rec in read_jsonl(_checks_path(actividad_id)):
-        iterable = rec if isinstance(rec, list) else [rec]
-        for r in iterable:
-            uid = r.get("user_id")
-            if not uid:
-                continue
-            users.setdefault(uid, []).append({
-                "accion": r.get("accion"),
-                "ts": r.get("ts"),
-                "iso": r.get("iso"),
-            })
-
-    participantes: List[Dict[str, Any]] = []
-    for uid, regs in users.items():
-        regs.sort(key=lambda r: r.get("ts", 0))
-        participantes.append({"user_id": uid, "registros": regs})
-    participantes.sort(key=lambda p: p["user_id"])
-    return participantes
+    participantes = _load_participantes(actividad_id)
+    res: List[Dict[str, Any]] = []
+    for uid, data in participantes.items():
+        res.append(
+            {
+                "user_id": uid,
+                "nombre": data.get("nombre", ""),
+                "niu": data.get("niu", ""),
+                "tiempo": int(data.get("tiempo", 0)),
+            }
+        )
+    res.sort(key=lambda p: p["user_id"])
+    return res
 
 
 def set_total(actividad_id: str, user_id: str, total_segundos: int, motivo: str, actor_id: str) -> Dict[str, Any]:
@@ -394,4 +442,8 @@ def set_eliminado(actividad_id: str, user_id: str, eliminar: bool, motivo: str, 
         "ts": int(time.time()),
     }
     append_jsonl(_actividad_dir(actividad_id) / "ajustes.jsonl", rec)
+    if eliminar:
+        remove_participante(actividad_id, user_id)
+    else:
+        add_participante(actividad_id, user_id)
     return rec

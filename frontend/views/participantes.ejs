@@ -94,13 +94,11 @@
       const parts = await fetchJSON(backend + '/asistencia/actividades/' + actividadId + '/participantes') || [];
       miembrosContainer.innerHTML = '';
       for(const p of parts){
-        const data = await fetchJSON(backend + '/admin/usuarios?q=' + p.user_id) || {};
-        const perfil = (data.items||[])[0] || {};
         const card = document.createElement('div');
         card.className = 'miembro-card';
         const info = document.createElement('div');
         info.className = 'info';
-        info.innerHTML = `<strong>${perfil.nombre || p.user_id}</strong><span>${perfil.niu || p.user_id}</span><span>Tiempo: ${formatDuracion(duracion)}</span>`;
+        info.innerHTML = `<strong>${p.nombre || p.user_id}</strong><span>${p.niu || p.user_id}</span><span>Tiempo: ${formatDuracion(p.tiempo || 0)}</span>`;
         const acciones = document.createElement('div');
         acciones.className = 'acciones';
         acciones.innerHTML = `
@@ -144,10 +142,10 @@
         showToast('Minutos inválidos','error');
         return;
       }
-      const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/ajuste-tiempo', {
+      const resp = await fetch(backend + '/asistencia/actividades/' + actividadId + '/time', {
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-        body: JSON.stringify({user_id: participanteActual, ajuste_segundos: mins*60*ajusteOperacion})
+        body: JSON.stringify({user_id: participanteActual, minutos: mins*ajusteOperacion})
       });
       if(resp.ok){
         showToast('Tiempo ajustado','success');
