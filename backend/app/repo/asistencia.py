@@ -1,9 +1,4 @@
-"""Utilities for managing attendance records.
-
-Currently only :func:`listar_activas` is implemented. The remaining
-functions are stubs so imports continue working while the rest of the
-feature set is developed.
-"""
+"""Utilities for managing attendance records."""
 
 from __future__ import annotations
 
@@ -67,10 +62,6 @@ def _meta_path(act_id: str) -> Path:
 
 def _checks_path(act_id: str) -> Path:
     return _actividad_dir(act_id) / "checks.jsonl"
-
-
-=======
->>>>>>> parent of 9626441 (Participantes cargan borrar funciona a medias)
 def obtener_codigo(actividad_id: str) -> str:
     """Return the code associated with an activity."""
 
