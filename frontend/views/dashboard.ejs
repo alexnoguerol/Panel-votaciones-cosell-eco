@@ -48,7 +48,9 @@
     const backend = '<%= backend %>';
     const token = localStorage.getItem('token');
     if (!token) { window.location.href = '/'; }
-
+    </script>
+    <script src="/topbar.js"></script>
+    <script>
     async function fetchJSON(url) {
       try {
         const resp = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
@@ -142,8 +144,9 @@
       const votosPendientes = (votos || []).filter(v => !votosHechos.has(v.id));
       if (votosPendientes.length) pendientes.push('Tienes ' + votosPendientes.length + ' votaciones pendientes');
 
+        const now = Date.now() / 1000;
         const asistenciasPendientes = (asistencias || []).filter(a =>
-          !(misCheckins || []).some(c => c.actividad_id === a.id && c.accion === 'in')
+          a.fin_ts > now && !(misCheckins || []).some(c => c.actividad_id === a.id && c.accion === 'in')
         );
         if (asistenciasPendientes.length) pendientes.push('Hay ' + asistenciasPendientes.length + ' registros de asistencia abiertos');
 
@@ -151,7 +154,15 @@
         document.getElementById('asistenciaCount').textContent = asistencias.length;
 
         renderSubcards(votos, document.getElementById('votacionesList'), false);
-        renderSubcards(asistencias, document.getElementById('asistenciasList'), true);
+        const sortedAsistencias = (asistencias || []).filter(a => a.fin_ts > now).sort((a,b)=>{
+          const aStarted = now >= (a.inicio_ts || 0);
+          const bStarted = now >= (b.inicio_ts || 0);
+          if (aStarted !== bStarted) return aStarted ? -1 : 1;
+          const aTarget = aStarted ? a.fin_ts : a.inicio_ts;
+          const bTarget = bStarted ? b.fin_ts : b.inicio_ts;
+          return aTarget - bTarget;
+        });
+        renderSubcards(sortedAsistencias, document.getElementById('asistenciasList'), true);
 
         const taskIcon = document.getElementById('tasksIcon');
         const taskPopup = document.getElementById('tasksPopup');
@@ -183,56 +194,9 @@
           document.getElementById('adminModule').style.display = 'block';
         }
 
-        const userArea = document.getElementById('userArea');
-        const userPopup = document.getElementById('userPopup');
-        const popupClose = document.getElementById('popupClose');
-        userArea.addEventListener('click', () => userPopup.classList.remove('hidden'));
-        popupClose.addEventListener('click', () => userPopup.classList.add('hidden'));
-
-        const menuBtn = document.getElementById('menuBtn');
-        const sideMenu = document.getElementById('sideMenu');
-        menuBtn.addEventListener('click', () => sideMenu.classList.toggle('open'));
-
         const asistenciaModule = document.getElementById('asistenciasModule');
         asistenciaModule.addEventListener('click', () => {
           window.location.href = '/asistencias';
-        });
-
-        const editBtn = document.getElementById('editBtn');
-        const inputs = ['nombreInput','grupoInput','cursoInput','niuInput'].map(id => document.getElementById(id));
-        let editing = false;
-        editBtn.addEventListener('click', async () => {
-          if (!editing) {
-            inputs.forEach(i => i.disabled = false);
-            editing = true;
-            editBtn.textContent = 'Guardar';
-          } else {
-            const body = {
-              nombre: document.getElementById('nombreInput').value,
-              grupo: document.getElementById('grupoInput').value,
-              curso: document.getElementById('cursoInput').value,
-              niu: document.getElementById('niuInput').value,
-            };
-            const resp = await fetch(backend + '/me/perfil', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-              body: JSON.stringify(body)
-            });
-            const data = await resp.json();
-            if (resp.ok) {
-              inputs.forEach(i => { i.disabled = true; i.classList.remove('updated','pending'); });
-              editing = false;
-              editBtn.textContent = '✏️ Editar';
-              const p = data.perfil || {};
-              ['nombre','grupo','curso','niu'].forEach(f => {
-                document.getElementById(f + 'Input').value = p[f] || '';
-              });
-              document.getElementById('userName').textContent = p.nombre || '';
-              document.getElementById('userNIU').textContent = p.niu || '';
-              (data.aplicados || []).forEach(f => document.getElementById(f + 'Input').classList.add('updated'));
-              (data.pendientes_aprobacion || []).forEach(f => document.getElementById(f + 'Input').classList.add('pending'));
-            }
-          }
         });
       })();
   </script>

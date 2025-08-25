@@ -38,7 +38,9 @@
         <input type="text" maxlength="1" class="code" />
         <input type="text" maxlength="1" class="code" />
       </div>
-      <button id="joinSubmit">Unirse</button>
+      <button id="joinSubmit" class="btn-green">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-fill-add" viewBox="0 0 16 16"><path d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/><path d="M2 13c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/></svg> Unirse
+      </button>
       <div id="joinMsg" class="message"></div>
     </div>
   </div>
@@ -106,27 +108,15 @@
     </div>
   </div>
 
-  <div id="toastContainer" class="toast-container"></div>
-
   <script>
     const backend = '<%= backend %>';
     const token = localStorage.getItem('token');
     if (!token) { window.location.href = '/'; }
-
+  </script>
+  <script src="/topbar.js"></script>
+  <script>
     function qs(sel, ctx=document) { return ctx.querySelector(sel); }
     function qsa(sel, ctx=document) { return [...ctx.querySelectorAll(sel)]; }
-
-    function showToast(msg, type='info'){
-      const cont = qs('#toastContainer');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = msg;
-      cont.appendChild(toast);
-      setTimeout(()=>{
-        toast.classList.add('hide');
-        toast.addEventListener('animationend',()=>toast.remove(),{once:true});
-      },3000);
-    }
 
     async function fetchJSON(url, opts={}) {
       const resp = await fetch(url, {
@@ -172,8 +162,10 @@
       infoBtn.classList.add('btn-blue');
       infoBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-square" viewBox="0 0 16 16"><path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/><path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0"/></svg> Más info`;
       infoBtn.addEventListener('click', () => mostrarInfo(act.id));
-      if(estado !== 'si') acciones.appendChild(joinBtn);
-      if(estado === 'si') acciones.appendChild(outBtn);
+      const now = Date.now()/1000;
+      const finished = act.fin_ts <= now;
+      if(!finished && estado !== 'si') acciones.appendChild(joinBtn);
+      if(!finished && estado === 'si') acciones.appendChild(outBtn);
       acciones.appendChild(infoBtn);
       card.appendChild(acciones);
       return card;
@@ -243,16 +235,6 @@
 
       qs('#joinClose').addEventListener('click', ()=> qs('#joinPopup').classList.add('hidden'));
       qs('#infoClose').addEventListener('click', ()=> qs('#infoPopup').classList.add('hidden'));
-
-      const menuBtn = document.getElementById('menuBtn');
-      const sideMenu = document.getElementById('sideMenu');
-      menuBtn.addEventListener('click', () => sideMenu.classList.toggle('open'));
-
-      const userArea = document.getElementById('userArea');
-      const userPopup = document.getElementById('userPopup');
-      const popupClose = document.getElementById('popupClose');
-      userArea.addEventListener('click', () => userPopup.classList.remove('hidden'));
-      popupClose.addEventListener('click', () => userPopup.classList.add('hidden'));
 
       async function submitJoin(actId){
       const code = qsa('.code-inputs .code').map(i=>i.value).join('');

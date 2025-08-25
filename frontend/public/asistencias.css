@@ -123,6 +123,14 @@ body {
   color: #fff;
 }
 
+.btn-blue, .btn-red, .btn-green {
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff;
+}
+
 .btn-blue { background: #3b82f6; }
 .btn-red { background: #ef4444; }
 .btn-green { background: #22c55e; }
@@ -173,6 +181,7 @@ body {
 .toast.success { background: #22c55e; }
 .toast.error { background: #ef4444; }
 .toast.info { background: #3b82f6; }
+.toast.warning { background: #fbbf24; }
 
 .toast.hide {
   animation: slide-out 0.3s forwards;
